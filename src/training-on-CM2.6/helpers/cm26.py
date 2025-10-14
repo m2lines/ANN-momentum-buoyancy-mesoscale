@@ -519,12 +519,12 @@ class DatasetCM26():
         
 
         if add_rho_fluxes:
-            Fx, Fy = self.add_subfilter_forcing_rho(ds_coarse, factor=factor, FGR_multiplier=FGR_multiplier,
+            Fx, Fy = self.add_subfilter_forcing_rho(factor=factor, FGR_multiplier=FGR_multiplier,
                 coarsening=coarsening, filtering=filtering, percentile=percentile,
                 debug = False)
-            ds_coarse.data['Fx'] = Fx
-            ds_coarse.data['Fy'] = Fy
-
+            _, _, ds_coarse.data['Fx'] = coarsening(None, None, Fx, self, ds_coarse, factor)
+            _, _, ds_coarse.data['Fy'] = coarsening(None, None, Fy, self, ds_coarse, factor)
+            
         ds_coarse.data = ds_coarse.data.transpose('time','zl',...)
 
         if not(debug):
@@ -540,7 +540,7 @@ class DatasetCM26():
                 Txx_filtered_state, Tyy_filtered_state, Txy_filtered_state, \
                 Txx, Tyy, Txy  
 
-    def add_subfilter_forcing_rho(self, ds_coarse, factor=4, FGR_multiplier=2,
+    def add_subfilter_forcing_rho(self, factor=4, FGR_multiplier=2,
                 coarsening=CoarsenWeighted(), filtering=Filtering(), percentile=0,
                 debug = False):
         '''
@@ -551,7 +551,7 @@ class DatasetCM26():
         SGS_forcing = (bar(u) nabla) bar(u) - bar((u nabla) u)
         where bar() represents filtering at tracer points
         
-        Returns coarse dataset with SGS forcing computed from interpolated velocities.
+        Returns filtered dataset with SGS forcing computed from interpolated velocities.
         '''
         
         # Interpolate u and v to tracer points on high-res grid
@@ -585,18 +585,10 @@ class DatasetCM26():
         Fx = Fx_filtered_state - Fx_filtered_tendency
         Fy = Fy_filtered_state - Fy_filtered_tendency
         
-        # Coarsegrain subfilter fluxes
-        _, _, ds_coarse.data['Fx'] = coarsening(None, None, Fx, self, ds_coarse, factor)
-        _, _, ds_coarse.data['Fy'] = coarsening(None, None, Fy, self, ds_coarse, factor)
-
-        ds_coarse.data = ds_coarse.data.transpose('time','zl',...)
-        
-        
         if not(debug):
             return Fx, Fy
         else:
-            return ds_coarse, \
-                u_at_T, v_at_T, rho_at_T, \
+            return u_at_T, v_at_T, rho_at_T, \
                 u_filtered, v_filtered, rho_filtered, \
                 Fx_hires, Fy_hires, \
                 Fx_filtered_tendency, Fy_filtered_tendency, \
