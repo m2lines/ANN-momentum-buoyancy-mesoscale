@@ -115,7 +115,7 @@ class DatasetCM26():
             param_init = xr.open_dataset('gs://cmip6/GFDL_CM2_6/grid', engine='zarr').rename(
                 {'st_ocean': 'zl', 'st_edges_ocean': 'zi'}).reset_coords()
         elif '3d-' in source:
-            base_path = os.path.expandvars('/vast/$USER/CM26_datasets/ocean3d/rawdata')
+            base_path = os.path.expandvars('/vast/pp2681/CM26_datasets/ocean3d/rawdata')
             param = xr.open_dataset(f'{base_path}/param.nc')
             if source == '3d-train':
                 file_list = [f'{base_path}/train-{j}.nc' for j in range(96)]
@@ -343,7 +343,8 @@ class DatasetCM26():
         return param.compute().chunk()
 
     def coarsen(self, factor=10, FGR_absolute=None, FGR_multiplier=None,
-                coarsening=CoarsenWeighted(), filtering=Filtering(), percentile=0):
+                coarsening=CoarsenWeighted(), filtering=Filtering(), percentile=0, 
+                pure_center=False):
         '''
         Coarsening of the dataset with a given factor
 
@@ -447,7 +448,7 @@ class DatasetCM26():
 
         # Filtered and filtered-coarsegrained states
         ds_filter = self.coarsen(factor=1, FGR_absolute=factor*FGR_multiplier,
-                                 filtering = filtering)
+                                 filtering = filtering, percentile=percentile)
         ds_coarse = ds_filter.coarsen(factor=factor, coarsening=coarsening, percentile=percentile)
 
         # Compute advection on a filtered state
@@ -474,10 +475,18 @@ class DatasetCM26():
         Tyy_hires = grid.interp(data.v * data.v, 'Y') * param.wet
         Txy_hires = grid.interp(data.u, 'X') * grid.interp(data.v, 'Y') * param.wet
 
+        #Fx_hires = data.rho * grid.interp(data.u, 'X') * param.wet
+        #Fy_hires = data.rho * grid.interp(data.v, 'Y') * param.wet
+        
+
         _, _, Txx_filtered_tendency = filtering(None, None, Txx_hires, self, FGR_multiplier * factor)
         _, _, Tyy_filtered_tendency = filtering(None, None, Tyy_hires, self, FGR_multiplier * factor)
         _, _, Txy_filtered_tendency = filtering(None, None, Txy_hires, self, FGR_multiplier * factor)
 
+        #_, _, Fx_filtered_tendency = filtering(None, None, Fx_hires, self, FGR_multiplier * factor)
+        #_, _, Fy_filtered_tendency = filtering(None, None, Fy_hires, self, FGR_multiplier * factor)
+
+        
         ## Filtered data
         grid = ds_filter.grid
         data = ds_filter.data
@@ -486,16 +495,25 @@ class DatasetCM26():
         Tyy_filtered_state = grid.interp(data.v * data.v, 'Y') * param.wet
         Txy_filtered_state = grid.interp(data.u, 'X') * grid.interp(data.v, 'Y') * param.wet
 
+        #Fx_filtered_state = data.rho * grid.interp(data.u, 'X') * param.wet
+        #Fy_filtered_state = data.rho * grid.interp(data.v, 'Y') * param.wet
+
         ## Subfilter fluxes
         ## bar(u)**2 - bar(u**2)
         Txx = Txx_filtered_state - Txx_filtered_tendency
         Tyy = Tyy_filtered_state - Tyy_filtered_tendency
         Txy = Txy_filtered_state - Txy_filtered_tendency
 
+        #Fx = Fx_filtered_state - Fx_filtered_tendency
+        #Fy = Fy_filtered_state - Fy_filtered_tendency
+
         # Subfilter fluxes on coarse grid
         _, _, ds_coarse.data['Txx'] = coarsening(None, None, Txx, self, ds_coarse, factor)
         _, _, ds_coarse.data['Tyy'] = coarsening(None, None, Tyy, self, ds_coarse, factor)
         _, _, ds_coarse.data['Txy'] = coarsening(None, None, Txy, self, ds_coarse, factor)
+
+        #_, _, ds_coarse.data['Fx'] = coarsening(None, None, Fx, self, ds_coarse, factor)
+        #_, _, ds_coarse.data['Fy'] = coarsening(None, None, Fy, self, ds_coarse, factor)
 
         ds_coarse.data = ds_coarse.data.transpose('time','zl',...)
 
@@ -510,7 +528,71 @@ class DatasetCM26():
                 Txx_hires, Tyy_hires, Txy_hires, \
                 Txx_filtered_tendency, Tyy_filtered_tendency, Txy_filtered_tendency, \
                 Txx_filtered_state, Tyy_filtered_state, Txy_filtered_state, \
-                Txx, Tyy, Txy   
+                Txx, Tyy, Txy  
+
+    def compute_subfilter_forcing_rho(self, ds_coarse, factor=4, FGR_multiplier=2,
+                coarsening=CoarsenWeighted(), filtering=Filtering(), percentile=0,
+                debug = False):
+        '''
+        Similar to compute_subfilter_forcing, but interpolates u and v to tracer points
+        BEFORE filtering. This means all variables (u, v, rho) are filtered at the same
+        tracer grid location.
+        
+        SGS_forcing = (bar(u) nabla) bar(u) - bar((u nabla) u)
+        where bar() represents filtering at tracer points
+        
+        Returns coarse dataset with SGS forcing computed from interpolated velocities.
+        '''
+        
+        # Interpolate u and v to tracer points on high-res grid
+        grid = self.grid
+        param = self.param
+        u_at_T = grid.interp(self.data.u, 'X') * param.wet
+        v_at_T = grid.interp(self.data.v, 'Y') * param.wet
+        rho_at_T = self.state.rho() * param.wet
+        
+
+        
+        # Filter u, v, and rho at tracer points
+        # Each is filtered as a tracer variable (T parameter) so they use tracer dimensions and mask
+        _, _, u_filtered = filtering(None, None, u_at_T, self, FGR_multiplier * factor)
+        _, _, v_filtered = filtering(None, None, v_at_T, self, FGR_multiplier * factor)
+        _, _, rho_filtered = filtering(None, None, rho_at_T, self, FGR_multiplier * factor)
+        
+        # Fluxes from unfiltered state
+        Fx_hires = rho_at_T * u_at_T * param.wet
+        Fy_hires = rho_at_T * v_at_T * param.wet
+
+        # Filter the fluxes
+        _, _, Fx_filtered_tendency = filtering(None, None, Fx_hires, self, FGR_multiplier * factor)
+        _, _, Fy_filtered_tendency = filtering(None, None, Fy_hires, self, FGR_multiplier * factor)
+
+        # Fluxes from filtered state
+        Fx_filtered_state = rho_filtered * u_filtered * param.wet
+        Fy_filtered_state = rho_filtered * v_filtered * param.wet
+
+        
+        # Subfilter fluxes
+        Fx = Fx_filtered_state - Fx_filtered_tendency
+        Fy = Fy_filtered_state - Fy_filtered_tendency
+        
+        # Coarsegrain subfilter fluxes
+        _, _, ds_coarse.data['Fx'] = coarsening(None, None, Fx, self, ds_coarse, factor)
+        _, _, ds_coarse.data['Fy'] = coarsening(None, None, Fy, self, ds_coarse, factor)
+
+        ds_coarse.data = ds_coarse.data.transpose('time','zl',...)
+        
+        if not(debug):
+            return ds_coarse
+        else:
+            return ds_coarse, \
+                u_at_T, v_at_T, rho_at_T, \
+                u_filtered, v_filtered, rho_filtered, \
+                Fx_hires, Fy_hires, \
+                Fx_filtered_tendency, Fy_filtered_tendency, \
+                Fx_filtered_state, Fy_filtered_state, \
+                Fx, Fy
+
 
     def perturb_velocities(self, grid_harmonic='plane_wave', amp=1e-3):
         '''
