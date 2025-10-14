@@ -2184,6 +2184,10 @@ class StateFunctions():
         data['dudz_geo_mag'] = np.sqrt(data['dudz_geo']**2 + data['dvdz_geo']**2)
         data['rho_grad_mag'] = np.sqrt(data['rhox']**2 + data['rhoy']**2)
 
+        # Preserve density fluxes if they exist
+        if 'Fx' in data:
+            pass  # Fx and Fy are already in data, will be included in return
+        
         return data.transpose('time','zl',...).astype('float32').drop_vars('zi'), data_constant.astype('float32')
 
     def vertical_modes(self, lon=0, lat=0, time=0, N2_small=1e-8,

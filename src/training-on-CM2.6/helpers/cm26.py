@@ -425,6 +425,7 @@ class DatasetCM26():
 
     def compute_subfilter_forcing(self, factor=4, FGR_multiplier=2,
                 coarsening=CoarsenWeighted(), filtering=Filtering(), percentile=0,
+                add_rho_fluxes=False,
                 debug = False):
         '''
         As compared to the "compute_subgrid_forcing" function, 
@@ -515,6 +516,15 @@ class DatasetCM26():
         #_, _, ds_coarse.data['Fx'] = coarsening(None, None, Fx, self, ds_coarse, factor)
         #_, _, ds_coarse.data['Fy'] = coarsening(None, None, Fy, self, ds_coarse, factor)
 
+        
+
+        if add_rho_fluxes:
+            Fx, Fy = self.add_subfilter_forcing_rho(ds_coarse, factor=factor, FGR_multiplier=FGR_multiplier,
+                coarsening=coarsening, filtering=filtering, percentile=percentile,
+                debug = False)
+            ds_coarse.data['Fx'] = Fx
+            ds_coarse.data['Fy'] = Fy
+
         ds_coarse.data = ds_coarse.data.transpose('time','zl',...)
 
         if not(debug):
@@ -530,7 +540,7 @@ class DatasetCM26():
                 Txx_filtered_state, Tyy_filtered_state, Txy_filtered_state, \
                 Txx, Tyy, Txy  
 
-    def compute_subfilter_forcing_rho(self, ds_coarse, factor=4, FGR_multiplier=2,
+    def add_subfilter_forcing_rho(self, ds_coarse, factor=4, FGR_multiplier=2,
                 coarsening=CoarsenWeighted(), filtering=Filtering(), percentile=0,
                 debug = False):
         '''
@@ -551,7 +561,6 @@ class DatasetCM26():
         v_at_T = grid.interp(self.data.v, 'Y') * param.wet
         rho_at_T = self.state.rho() * param.wet
         
-
         
         # Filter u, v, and rho at tracer points
         # Each is filtered as a tracer variable (T parameter) so they use tracer dimensions and mask
@@ -582,8 +591,9 @@ class DatasetCM26():
 
         ds_coarse.data = ds_coarse.data.transpose('time','zl',...)
         
+        
         if not(debug):
-            return ds_coarse
+            return Fx, Fy
         else:
             return ds_coarse, \
                 u_at_T, v_at_T, rho_at_T, \

@@ -9,7 +9,7 @@ import argparse
 import json
 import gcm_filters
 
-depth_selector = lambda x: x.isel(zl=np.arange(0,50,5))
+depth_selector = lambda x: x.isel(zl=np.arange(0,50,1))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -18,7 +18,11 @@ if __name__ == '__main__':
     parser.add_argument('--percentile', type=float, default=0.5)
     parser.add_argument('--coarsening_str', type=str, default='CoarsenKochkovMinMax()')
     parser.add_argument('--subfilter', type=str, default='subfilter')
+    parser.add_argument('--add_rho_fluxes', type=int, default=1)  
     parser.add_argument('--filtering_str', type=str, default='Filtering()') # default: Filtering(shape=gcm_filters.FilterShape.TAPER)
+    parser.add_argument('--datasets', type=str, nargs='+', default=['train', 'validate', 'test'], 
+                        choices=['train', 'validate', 'test'],
+                        help='Which dataset(s) to generate. Default: all three (train validate test)')
     args = parser.parse_args()
     print(args)
 
@@ -31,7 +35,7 @@ if __name__ == '__main__':
     if args.FGR<0:
         args.FGR = None # Will ignore this parameter in subgrid forcing
 
-    for ds_str in ['train', 'validate', 'test']:
+    for ds_str in args.datasets:
         ds = DatasetCM26(source=f'3d-{ds_str}')
         if args.subfilter == 'subfilter':
             SGS_function = ds.compute_subfilter_forcing
@@ -41,7 +45,8 @@ if __name__ == '__main__':
         coarse_dataset = SGS_function(factor=args.factor, FGR_multiplier=args.FGR, 
                         coarsening=eval(args.coarsening_str), 
                         filtering=eval(args.filtering_str),
-                        percentile=args.percentile)
+                        percentile=args.percentile,
+                        add_rho_fluxes=bool(args.add_rho_fluxes))
         
         if ds_str == 'train':
             depth_selector(coarse_dataset.param).to_netcdf(os.path.join(folder,'param.nc'))
