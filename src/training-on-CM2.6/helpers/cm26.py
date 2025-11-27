@@ -11,10 +11,10 @@ import os
 ######## Precomputed training datasets ############
 def read_datasets(keys=['train', 'test', 'validate'], factors=[4, 9, 12, 15], subfilter='subfilter', FGR=3, load=False):
     dictionary = {}
-    depth_selector = lambda x: x.isel(zl=np.arange(0,50,5)) if len(x.zl)==50 else x
+    #depth_selector = lambda x: x.isel(zl=np.arange(0,50,5)) if len(x.zl)==50 else x
     for factor in factors:
         base_path = os.path.expandvars(f'/vast/$USER/CM26_datasets/ocean3d/{subfilter}/FGR{FGR}/factor-{factor}')
-        param = depth_selector(xr.open_dataset(f'{base_path}/param.nc'))
+        param = (xr.open_dataset(f'{base_path}/param.nc'))
 
         for key in keys:
             print('Reading from folder', base_path)

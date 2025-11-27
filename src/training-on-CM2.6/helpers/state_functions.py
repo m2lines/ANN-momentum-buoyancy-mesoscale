@@ -1571,6 +1571,50 @@ class StateFunctions():
         
         return {'Txx': Txx, 'Tyy': Tyy, 'Txy': Txy}
     
+    def ANN_rho_inference(self, ann=None, stencil_size = 3, return_xarray=False):
+        if 'zl' in self.data.dims:
+            print('Error: please select a single depth level')
+            return
+        
+        delta_x = tensor_from_xarray(self.data.delta_x)
+        wet = tensor_from_xarray(self.param.wet)
+
+        def extract_nxn(x):
+            y = torch_pad(tensor_from_xarray(x), one_side_pad=stencil_size//2, left=True, right=True, top=True, bottom=True)
+            return image_to_nxn_stencil_gpt(y, stencil_size=stencil_size)
+
+        # Tensor of size 9xNsamples
+        rhox = extract_nxn(self.data.rhox)
+        rhoy = extract_nxn(self.data.rhoy)
+        sh_xx = extract_nxn(self.data.sh_xx)
+        sh_xy = extract_nxn(self.data.sh_xy_h)
+        rel_vort = extract_nxn(self.data.rel_vort_h)
+
+        rho_norm = torch.sqrt((rhox.type(torch.float64)**2 + rhoy.type(torch.float64)**2).sum(dim=-1, keepdims=True)).type(torch.float32)
+        gradv_norm = torch.sqrt((sh_xx.type(torch.float64)**2 + sh_xy.type(torch.float64)**2 + rel_vort.type(torch.float64)**2).sum(dim=-1, keepdims=True)).type(torch.float32)
+
+        input_features = torch.concat([rhox / (rho_norm+1e-30),
+                                       rhoy / (rho_norm+1e-30),
+                                       sh_xx / (gradv_norm+1e-30),
+                                       sh_xy / (gradv_norm+1e-30),
+                                       rel_vort / (gradv_norm+1e-30)
+                                      ],-1)
+    
+        output_features = ann(input_features) * rho_norm * gradv_norm * (wet * delta_x**2).reshape(-1,1)
+        # import pdb
+        # pdb.set_trace()
+
+        Fx = output_features[:,0].reshape(wet.shape)
+        Fy = output_features[:,1].reshape(wet.shape)
+
+        if return_xarray:
+            Fx_xarray = self.data.Fx * 0 + Fx.detach().numpy()
+            Fy_xarray = self.data.Fy * 0 + Fy.detach().numpy()
+        else:
+            Fx_xarray = None
+            Fy_xarray = None
+        return {'Fx': Fx, 'Fy': Fy, 'Fx_xarray': Fx_xarray, 'Fy_xarray': Fy_xarray}
+
     def KE_Arakawa(self):
         '''
         https://github.com/NOAA-GFDL/MOM6/blob/dev/gfdl/src/core/MOM_CoriolisAdv.F90#L1000-L1003

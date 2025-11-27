@@ -2,3 +2,5 @@
 *.pdf
 *.ipynb_checkpoints*
 .ffmpeg*
+*.out
+*.err
