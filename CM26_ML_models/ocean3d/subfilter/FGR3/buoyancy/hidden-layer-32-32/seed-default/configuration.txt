@@ -1,0 +1,1 @@
+{"stencil_size": 3, "hidden_layers": "[32,32]", "subfilter": "subfilter", "FGR": 3, "factors": "[4,9,12,15]", "depth_idx": "np.arange(0, 50, 2)", "time_iters": 500, "print_iters": 1, "learning_rate": 0.001, "permute_factors_and_depth": "True", "path_save": "EXP0"}
