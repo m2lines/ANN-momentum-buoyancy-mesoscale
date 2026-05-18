@@ -1,4 +1,9 @@
-# ANN parameterization of mesoscale momentum fluxes in ocean model MOM6
+# ANN parameterization of mesoscale momentum and buoyancy fluxes in ocean model MOM6
+
+This repository is a fork of [m2lines/ANN-momentum-mesoscale](https://github.com/m2lines/ANN-momentum-mesoscale) that extends Pavel Perezhogin's training pipeline from momentum fluxes to buoyancy (ρ) fluxes. The buoyancy extension is developed by Dhruv Balwada with Pavel Perezhogin's help. The original momentum-flux work — paper figures, MOM6 implementation, online experiments — is unchanged from upstream and described below.
+
+---
+
 This repository contains training algorithm and MOM6 ocean model with implemented parameterization. Additionally, we include figure plotting notebooks for the paper "[Generalizable neural-network parameterization of mesoscale eddies in idealized and global ocean models](https://arxiv.org/abs/2505.08900)" by Pavel Perezhogin, Laure Zanna and Alistair Adcroft, to be submitted soon.
 
 Example of online simulation with the proposed ANN parameterization in the idealized configuration NeverWorld2 of the MOM6 ocean model ([full movie](https://github.com/m2lines/ANN-momentum-mesoscale/blob/main/assets/NW2-mp4.mp4), [code](https://github.com/m2lines/ANN-momentum-mesoscale/blob/main/assets/NW2-movie.ipynb)):
@@ -76,3 +81,20 @@ python generate_3d_datasets.py --factor=4
 
 ## Filtering and offline analysis in idealized configuration NW2
 Filtered dataset with diagnosed subfilter fluxes in idealized configuration NW2 is constructed using scripts [filter-NW2-data.py](https://github.com/m2lines/ANN-momentum-mesoscale/blob/main/src/offline-NW2/filter-NW2-data.py) and [filter-interfaces-GM-filter.py](https://github.com/m2lines/ANN-momentum-mesoscale/blob/main/src/offline-NW2/filter-interfaces-GM-filter.py). Second script is optional and used only to more accurately estimate APE in outcropping regions. Offline prediction of subfilter fluxes and evaluation of offline skill is present in notebook [offline-analysis-NW2.ipynb](https://github.com/m2lines/ANN-momentum-mesoscale/blob/main/notebooks/offline-analysis-NW2.ipynb).
+
+# Training ANN on buoyancy fluxes (this fork)
+
+The buoyancy-flux pipeline mirrors the momentum-flux pipeline above: same coarsened CM2.6 datasets, same ANN architecture, with a separate training routine targeting subfilter ρ-fluxes.
+
+* Training routine: [src/training-on-CM2.6/helpers/train_rho_fluxes.py](src/training-on-CM2.6/helpers/train_rho_fluxes.py)
+* Training script: [src/training-on-CM2.6/scripts/train_script_rho_fluxes.py](src/training-on-CM2.6/scripts/train_script_rho_fluxes.py)
+* Buoyancy-flux diagnostics added to [src/training-on-CM2.6/helpers/cm26.py](src/training-on-CM2.6/helpers/cm26.py)
+* Slurm wrappers for dataset generation: `src/training-on-CM2.6/scripts/slurm_generate_datasets_{4,9,12,15}.sh`
+
+Run training:
+```
+cd src/training-on-CM2.6/scripts/
+python train_script_rho_fluxes.py
+# or via Slurm:
+sbatch slurm_train_ann.sh
+```
