@@ -648,6 +648,47 @@ class DatasetCM26():
         gc.collect()
         return DatasetCM26(data, self.param)
     
+    def predict_ANN_rho(self, ann_Txy, ann_Txx_Tyy, ann_Tall, **kw):
+        '''
+        This function makes ANN rho inference on the whole dataset
+        '''
+        print('THIS FUNCTION NOT IMPLEMENTED YET!')
+        pass
+        
+
+        data = xr.Dataset()
+        param = self.param
+        for key in ['SGSx', 'SGSy', 'u', 'v', 'Fx', 'Fy', 'sh_xx', 'sh_xy_h', 'div']:
+            try:
+                data[key] = self.nanvar(self.data[key]).copy(deep=True).compute()
+            except:
+                pass
+        
+        data['ZB20u'] = xr.zeros_like(data.SGSx)
+        data['ZB20v'] = xr.zeros_like(data.SGSy)
+        try:
+            data['Txx_pred'] = xr.zeros_like(data.Txx)
+            data['Tyy_pred'] = xr.zeros_like(data.Tyy)
+            data['Txy_pred'] = xr.zeros_like(data.Txy)
+        except:
+            pass
+
+        for time in range(len(self.data.time)):
+            for zl in range(len(self.data.zl)):
+                batch = self.select2d(time=time,zl=zl)
+                prediction = batch.state.ANN(ann_Txy, ann_Txx_Tyy, ann_Tall, **kw)
+                data['ZB20u'][{'time':time, 'zl':zl}] = prediction['ZB20u'].where(param.wet_u[zl])
+                data['ZB20v'][{'time':time, 'zl':zl}] = prediction['ZB20v'].where(param.wet_v[zl])
+                try:
+                    data['Txx_pred'][{'time':time, 'zl':zl}] = prediction['Txx'].where(param.wet[zl])
+                    data['Tyy_pred'][{'time':time, 'zl':zl}] = prediction['Tyy'].where(param.wet[zl])
+                    data['Txy_pred'][{'time':time, 'zl':zl}] = prediction['Txy'].where(param.wet[zl])
+                except:
+                    pass
+        
+        gc.collect()
+        return DatasetCM26(data, self.param)
+    
     def predict_ZB(self, fun=None, **kw):
         '''
         This function makes ANN inference on the whole dataset
