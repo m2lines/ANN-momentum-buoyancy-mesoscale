@@ -1,0 +1,367 @@
+\documentclass[draft,grl]{agutexSI2019}
+
+
+\usepackage{xr}
+\externaldocument{agujournaltemplate}
+
+\usepackage{amsmath, amsfonts}
+\allowdisplaybreaks
+
+\usepackage{graphicx}
+\usepackage{tabularray, booktabs}
+\usepackage{color}
+\usepackage{amsmath}
+
+\setkeys{Gin}{draft=false}
+ 
+\begin{document}
+
+%\includegraphics{agu_pubart-white_reduced.eps}
+% sigh
+\makeatletter
+\def\@makecol{\setbox\@outputbox
+     \vbox{\boxmaxdepth \maxdepth
+\ifdim\ht\dbltopins<1pt\else\unvbox\dbltopins\fi
+     \unvbox\@cclv
+\ifdim\ht\dblbotins<1pt\else\unvbox\dblbotins\fi%
+\ifvoid\footins\else\vskip\skip\footins\footnoterule\unvbox\footins\fi
+%\vss
+\vskip 0pt plus 1fil minus \maxdimen
+}%
+%\global\savefigandtabnumber\figandtabnumber
+%\global\advance\savefigandtabnumber by 1 %% Because loop stops one short
+                                         %% of the total number of figs
+\global\savedblfigandtabnumber\dblfigandtabnumber
+   \xdef\@freelist{\@freelist\@midlist}\gdef\@midlist{}\@combinefloats
+   \setbox\@outputbox\vbox to\@colht{\boxmaxdepth\maxdepth
+   \@texttop\dimen128=\dp\@outputbox\unvbox\@outputbox
+   \vskip-\dimen128\@textbottom}%
+   \global\maxdepth\@maxdepth}
+\makeatother
+
+\title{Supporting Information for "Generalizable neural-network parameterization of mesoscale eddies in idealized and global ocean models"}
+
+\vspace{0.5 cm}
+
+
+\authors{Pavel Perezhogin\affil{1}, Alistair Adcroft\affil{3}, Laure Zanna\affil{1,2}}
+
+\affiliation{1}{Courant Institute of Mathematical Sciences, New York University, New York, NY, USA}
+\affiliation{2}{Center for Data Science, New York University, New York, NY, USA}
+
+\affiliation{3}{Program in Atmospheric and Oceanic Sciences, Princeton University, Princeton, NJ, USA}
+
+
+\begin{article}
+
+
+\noindent\textbf{Contents of this file}
+\begin{enumerate}
+\item Text S1 to S4
+\item Tables S1 to S3
+\item Figures S1 to S6
+\end{enumerate}
+
+% \section*{Introduction}
+
+% In Text S1 we describe the training dataset and ANN architecture, summarized in Table S1.
+
+\newpage
+
+\section{*}{Text S1. Known parameterizations as a special case of dimensional scaling}
+Here, we show that enforcing the dimensional scaling constraint to the ANN parameterization is not too restrictive and admits multiple known parameterizations as a special case with continuous functional representations (see \citeA{prakash2022invariant} for discussion). We also show that these functional representations do not depend on the normalization factor ($||\mathbf{X}||_2^2$) explicitly. This suggests that the choice of the normalization factor primarily affects the range of inputs to the neural network, but not the function to be learnt. %Thus, a shift in the distribution of the normalization factor should not hinder the generalization ability of the parameterization.
+
+We denote the components of the predicted momentum fluxes as follows:
+\begin{gather}
+    \widehat{\mathbf{T}}(\mathbf{X}, \Delta) = \Delta^2 ||\mathbf{X}||_2^2 \mathrm{ANN}_{\theta} (\mathbf{X} / ||\mathbf{X}||_2) \equiv \\ 
+    \Delta^2 ||\mathbf{X}||_2^2 \begin{pmatrix}
+        \mathrm{ANN}_{\theta}^{xx} (\mathbf{x}) & \mathrm{ANN}_{\theta}^{xy} (\mathbf{x}) \\
+        \mathrm{ANN}_{\theta}^{xy} (\mathbf{x}) & \mathrm{ANN}_{\theta}^{yy} (\mathbf{x})
+    \end{pmatrix}, \label{eq:second_ANN_equation}
+\end{gather}
+where the vector of input features is
+\begin{equation}
+    \mathbf{X} =
+    \begin{pmatrix}
+        \left[ \overline{\sigma}_S \right]{\updownarrow \scriptstyle 9}  \\
+        \left[ \overline{\sigma}_T \right]{\updownarrow \scriptstyle 9} \\
+        \left[ \overline{\omega} \right]{\updownarrow \scriptstyle 9}
+    \end{pmatrix} \in \mathbb{R}^{27}
+\end{equation}
+and $\mathbf{x}=\mathbf{X} / ||\mathbf{X}||_2$.
+
+\subsection{*}{Smagorinsky parameterization}
+We first consider a \citeA{smagorinsky1963general} subgrid parameterization:
+\begin{equation}
+    \widehat{\mathbf{T}} =   C_S \Delta^2 \sqrt{\overline{\sigma}_S^2 + \overline{\sigma}_T^2} \begin{pmatrix}
+    \overline{\sigma}_T & \overline{\sigma}_S \\
+    \overline{\sigma}_S & -\overline{\sigma}_T
+    \end{pmatrix}.
+\end{equation}
+This subgrid model can be given in the form of Eq. \eqref{eq:second_ANN_equation} if ANN parameterizes the following functions:
+\begin{gather}
+    \mathrm{ANN}_{\theta}^{xx}(\mathbf{x}) = C_S x_{14} \sqrt{x_5^2 + x_{14}^2} \\
+    \mathrm{ANN}_{\theta}^{yy}(\mathbf{x}) = - \mathrm{ANN}_{\theta}^{xx}(\mathbf{x}) \\
+    \mathrm{ANN}_{\theta}^{xy}(\mathbf{x}) = C_S x_{5} \sqrt{x_5^2 + x_{14}^2},
+\end{gather}
+where $x_5$ and $x_{14}$ represent components of the non-dimensional vector $\mathbf{x}$ which are equal to $\overline{\sigma}_S / ||\mathbf{X}||_2$  and $\overline{\sigma}_T / ||\mathbf{X}||_2$ in the center of $3 \times 3$ spatial stencil, respectively. The derived functions are continuous on a bounded domain ($|x_i|\leq 1$), and thus they can be easily learned with the ANN. The functional representations of the parameterizations derived below are continuous as well.
+
+\subsection{*}{Zanna-Bolton 2020 parameterization}
+Similarly, we can show that \citeA{zanna2020data} parameterization
+\begin{equation}
+    \widehat{\mathbf{T}} = - \gamma \Delta^2 
+    \begin{pmatrix}
+        -\overline{\omega} \, \overline{\sigma}_S & \overline{\omega} \, \overline{\sigma}_T\\
+        \overline{\omega} \, \overline{\sigma}_T & \overline{\omega} \, \overline{\sigma}_S
+    \end{pmatrix} - \frac{1}{2}\gamma \Delta^2 (
+        \overline{\omega}^2 + \overline{\sigma}_T^2 + \overline{\sigma}_S^2)
+    \begin{pmatrix}
+        1 & 0\\
+        0 & 1
+    \end{pmatrix}
+\end{equation}
+can be represented as follows:
+\begin{gather}
+    \mathrm{ANN}_{\theta}^{xx}(\mathbf{x}) =  \gamma x_5 x_{23} - \frac{1}{2} \gamma (x_5^2 + x_{14}^2 + x_{23}^2), \\
+    \mathrm{ANN}_{\theta}^{yy}(\mathbf{x}) =  -\gamma x_5 x_{23} - \frac{1}{2} \gamma (x_5^2 + x_{14}^2 + x_{23}^2), \\
+    ANN_{\theta}^{xy}(\mathbf{x}) =  -\gamma x_{14} x_{23}. 
+\end{gather}
+
+\subsection{*}{Leith 1996 parameterization} Next, we consider \citeA{leith1996stochastic} parameterization:
+\begin{equation}
+    \widehat{\mathbf{T}} = C_L \Delta^3 | \nabla \overline{\omega}| \begin{pmatrix}
+    \overline{\sigma}_T & \overline{\sigma}_S \\
+    \overline{\sigma}_S & -\overline{\sigma}_T
+    \end{pmatrix}.
+\end{equation}
+By approximating the gradient with central differences and assuming an isotropic and uniform grid, we obtain:
+\begin{gather}
+    \mathrm{ANN}_{\theta}^{xx}(\mathbf{x}) = \frac{1}{2} C_L x_{14} \sqrt{(x_{24}-x_{22})^2 + (x_{26}-x_{20})^2}, \\
+    \mathrm{ANN}_{\theta}^{yy}(\mathbf{x}) = -\mathrm{ANN}_{\theta}^{xx}(\mathbf{x}), \\
+    \mathrm{ANN}_{\theta}^{xy}(\mathbf{x}) = \frac{1}{2} C_L x_{5} \sqrt{(x_{24}-x_{22})^2 + (x_{26}-x_{20})^2}
+\end{gather}
+
+\subsection{*}{Biharmonic Smagorinsky parameterization} The biharmonic Smagorinsky subgrid model has the form:
+\begin{equation}
+    \widehat{\mathbf{T}} =   -C_S \Delta^4 \sqrt{\overline{\sigma}_S^2 + \overline{\sigma}_T^2} 
+    \nabla^2
+    \begin{pmatrix}
+     \overline{\sigma}_T & \overline{\sigma}_S \\
+    \overline{\sigma}_S & -\overline{\sigma}_T
+    \end{pmatrix}.
+\end{equation}
+By approximating the $\nabla^2$ operator on an isotropic and uniform grid, we obtain:
+\begin{gather}
+    \mathrm{ANN}_{\theta}^{xx}(\mathbf{x}) = - C_S (x_{15} + x_{13} + x_{17} + x_{11}-4x_{14}) \sqrt{x_5^2 + x_{14}^2}, \\
+        \mathrm{ANN}_{\theta}^{yy}(\mathbf{x}) = -\mathrm{ANN}_{\theta}^{xx}(\mathbf{x}), \\
+      \mathrm{ANN}_{\theta}^{xy}(\mathbf{x}) = - C_S (x_{6} + x_{4} + x_{8} + x_{2}-4x_{5}) \sqrt{x_5^2 + x_{14}^2}.
+\end{gather}
+
+\section{*}{Text S2. Robustness of division by small numbers}
+The robustness of the  parameterization with the dimensional scaling, 
+\begin{gather}
+    \widehat{\mathbf{T}}(\mathbf{X}, \Delta) = \Delta^2 ||\mathbf{X}||_2^2 \mathrm{ANN}_{\theta} (\mathbf{X} / ||\mathbf{X}||_2), \label{eq:first_ANN_equation}
+\end{gather}
+at $\mathbf{X}=\mathbf{0}$ is achieved as follows. We first identify that most known parameterizations, such as \citeA{smagorinsky1963general} and \citeA{leith1996stochastic}, predict zero fluxes when the velocity gradients are zero. We enforce the same property for our parameterization by extending Eq. \eqref{eq:first_ANN_equation} with:
+\begin{equation}
+    \widehat{\mathbf{T}}(\mathbf{X}=\mathbf{0}, \Delta)=\mathbf{0}.
+\end{equation}
+Numerically, this property is implemented by adding a very small number ($10^{-30}\mathrm{s}^{-1}$) to the denominator in Eq. \eqref{eq:first_ANN_equation}. 
+
+Additionally, we ensure that Eq. \eqref{eq:first_ANN_equation} is continuous at $\mathbf{X}=\mathbf{0}$, that is, the corresponding limit exists and is equal to the function value (zero):
+\begin{equation}
+    \lim_{\mathbf{X}\to\mathbf{0}} \widehat{\mathbf{T}}(\mathbf{X}, \Delta) = \widehat{\mathbf{T}}(\mathbf{X}=\mathbf{0}, \Delta) = \mathbf{0}. \label{eq:limit}
+\end{equation}
+The function $\mathrm{ANN}_{\theta}$ is continuous as a composition of continuous activation functions (ReLU). Furthermore, for any $||\mathbf{X}||_2>0$, the function $\mathrm{ANN}_{\theta}$ is evaluated on a unit sphere, which is a compact set. Therefore, the continuous function $\mathrm{ANN}_{\theta}$ is bounded on the compact set by some constant $A(\theta)$ that depends only on the trainable parameters $\theta$. We verify the limit (Eq. \eqref{eq:limit}) by inequality:
+\begin{equation}
+    \left|\Delta^2 ||\mathbf{X}||_2^2 \mathrm{ANN}_{\theta} (\mathbf{X} / ||\mathbf{X}||_2)\right| \leq A(\theta) \Delta^2 ||\mathbf{X}||_2^2 \to \mathbf{0} \text{ as } \mathbf{X}\to\mathbf{0}.
+\end{equation}
+
+
+\section{*}{Text S3. Details of the training algorithm} 
+%\subsection{*}{Dataset}
+%Following \citeA{guillaumin2021stochastic}, the training dataset used is from the GFDL CM2.6 climate model \cite{griffies2015impacts} with $0.1^\circ$ nominal resolution for the ocean component. % for creating training data. %\citeA{gultekin2024analysis} shows that the CNN subfilter parameterization struggles to generalize across different layer depths, while generalization across different resolutions was not studied. 
+%We produce a vast training dataset of subfilter forcing to explore generalization.
+The training dataset is created using four coarse-graining factors, selected to be similar to those used in \citeA{gultekin2024analysis}, and 10 depths (extending \citeA{gultekin2024analysis}), see Table \ref{tab:parameters}. %The dataset consists of filtered and coarse-grained velocity gradients (Eq. \eqref{eq:ZB_features}) and subfilter forcing (Eq. \eqref{eq:subfilter_forcing}). %, both coarse-grained to a coarse grid. 
+
+\subsection{*}{ANN model architecture}
+For offline analysis, we use an ANN, also known as a multilayer perceptron (MLP), with two hidden layers, 32 neurons each, in a total of 2051 parameters, both for parameterizations with and without dimensional scaling (see Table \ref{tab:parameters}). For online implementation, the ANN model is chosen to be smaller (see Table \ref{tab:parameters}): it has only a single hidden layer with $20$ neurons, as in \citeA{prakash2022invariant}, with a total of $623$ trainable parameters. We verified that reducing the number of neurons for online implementation does not significantly impact the response in kinetic and potential energy and the time-mean sea surface temperature in short 5-year simulations in the global ocean model OM4 (Figure S5). Thus, we keep the smaller ANN for online implementation to bound its computational cost to within $\approx 10\%$ of the global ocean model runtime.
+
+\subsection{*}{Training algorithm and boundary conditions}
+We train the ANN model on data from the full globe, similarly to \citeA{gultekin2024analysis}. The loss function is defined to optimize for the divergence ($\nabla \cdot$ ) of subfilter fluxes (${\mathbf{T}}$) similarly to \citeA{zanna2020data} and \citeA{srinivasan2024turbulence}. The mean squared error (MSE) loss is minimized on every 2D snapshot of subfilter forcing $\mathbf{S}$ and normalized by the corresponding $l_2$-norm of $\mathbf{S}$ \cite{agdestein2025discretize}:
+\begin{equation}
+\mathcal{L}_{\mathrm{MSE}} = ||(\mathbf{S} - \nabla \cdot \widehat{\mathbf{T}}) \cdot m ||_2^2 ~ / ~||\mathbf{S} \cdot m||_2^2, \label{eq:mse_loss}
+\end{equation}
+where $m$ is the mask of wet points. The
+input features (velocity gradients, $\mathbf{X}$) and predicted subfilter fluxes are set to zero on the land as well: $\widehat{\mathbf{T}}\equiv m \cdot \widehat{\mathbf{T}}(m \cdot \mathbf{X})$. That is, we impose zero Neumann boundary condition \cite{zhang2024addressing} and free-slip boundary condition. We found that including the grid points adjacent to the land to the loss function is essential for ensuring the numerical stability of online runs. Another important design choice for online numerical stability is performing the ANN inference on the collocated, rather than on the staggered grid, similarly to \citeA{guillaumin2021stochastic} and  \citeA{agdestein2025discretize}. 
+
+The loss function (Eq. \eqref{eq:mse_loss}) is evaluated and minimized for a total of $16000$ two-dimensional snapshots during training, see Table \ref{tab:parameters}. We do not use any regularizations, such as weight decay, during the training of ANNs because the size of the dataset is much bigger relative to the number of trainable parameters. We verified that the offline skill on training and testing data is very similar, suggesting that there is no overfitting, and there is no need for regularization.
+
+\subsection{*}{Sensitivity to the random seed}
+The R-squared of the offline predictions of the ANN is almost insensitive to the random seed used to initialize the training algorithm. In addition, the prediction errors $\mathbf{S} - \nabla \cdot \widehat{\mathbf{T}}$ are highly correlated between different seeds (as in \citeA{srinivasan2024turbulence}). We also confirmed that the kinetic energy is nearly unchanged in online two-layer Double Gyre experiments, using ANNs generated from different initializations of the training algorithm, similarly to \citeA{zhang2024addressing}. However, there is some sensitivity to the training algorithm initialization for the mean flow prediction: the response pattern in the mean flow is similar, but the response magnitude can vary by $50\%$. The sensitivity of the mean fields to the random seed is not apparent in the global ocean configuration OM4.
+
+\subsection{*}{Choice of the filter scale in the training dataset}
+The filtering operator used is a Gaussian filter implemented in the package GCM-Filters \cite{grooms2021diffusion, loose2022gcm} with width $\overline{\Delta}$, chosen in relation to the coarse grid spacing $\Delta$. The filter-to-grid width ratio parameter ($\mathrm{FGR}=\overline{\Delta}/\Delta$) represents the strength of the subfilter parameterization: relatively low value of FGR ($\overline{\Delta}/\Delta=1$) in the training dataset results in a learned parameterization that has negligible effect in online simulations. On the other hand, a relatively large value ($\mathrm{FGR}=4$) results in over-energized grid-scale features. The value used here ($\mathrm{FGR}=3$) corresponds to the strongest parameterization effect without generating grid-scale noise.  Note that the optimal FGR parameter depends on the numerical and physical dissipation schemes present in the ocean model, as the ANN subfilter parameterization alone does not produce enough grid-scale dissipation. For the discussion of how to choose FGR parameter see \citeA{perezhogin2025large, perezhogin2024stable, perezhogin2023subgrid}.
+
+
+
+
+\section{*}{Text S4. Online implementation and numerical stability in MOM6}
+
+The trained parameters of the ANN subfilter model are saved to a NetCDF file and read by the numerical ocean model during initialization. The neural network inference is implemented using the Fortran module of \citeA{Sane2023}. The ANN inference takes $\approx$ 10\% of the ocean model runtime, for a neural network with one hidden layer and 20 neurons. However, the inference can be further accelerated, as we found that the inference in Python is generally faster than in Fortran. %However, the inference can be significantly accelerated, as we found that the inference in our Fortran module is 10 times slower than the inference in Python on one CPU core. Following \citeA{perezhogin2024stable}, we modify the horizontal divergence operator to account for spatially-varying vertical grid spacing. 
+
+The implemented ANN parameterization works stably (free of NaNs in prognostic fields) in idealized Double Gyre and global ocean OM4 configurations, without any tuning, in part because the biharmonic Smagorinsky model provides the dissipation. In the idealized configuration NeverWorld2 (NW2, \citeA{marques2022neverworld2}), however, tuning is required to improve the numerical stability even when a backscatter parameterization (whether our ANN or more traditional parametrization) is used together with biharmonic Smagorinsky model; e.g., \citeA{yankovsky2024}. 
+We have modified the ANN parameterization to achieve stability, without optimizing for online metrics, using a set of minimal changes. Our tuning includes attenuating the magnitude of the ANN parameterization in high-strain regions following \citeA{perezhogin2024stable} and allowing the MOM6 dynamical core to truncate velocities if they are too big. Additionally, at resolution $1/6^\circ$ in NW2, we had to reduce the time stepping interval.
+
+
+
+
+\end{article}
+\newpage
+
+\begin{table}[]
+\centering
+\caption{Parameters of the training data and artificial neural network (ANN) model}
+\label{tab:parameters}
+\begin{tabular}{ll}
+\toprule
+\textbf{Category} & \textbf{Value} \\
+\midrule
+\textbf{Training Data Parameters} & \\
+High-resolution data & CM2.6 \cite{griffies2015impacts}, $0.1^\circ$ ocean grid\\ 
+Diagnosed features & $\overline{\sigma}_S$, $\overline{\sigma}_T$, $\overline{\omega}$, $\mathbf{S}$, $\mathbf{T}$  \\
+Layer Depths (m) & $5$, $55$, $110$, $180$, $330$, $730$, $1500$, $2500$, $3500$, $4500$ \\
+Horizontal grid type & Tripolar \\
+Horizontal extent & All globe including polar latitudes \\
+Coarse Grid Spacing, $\Delta$ (nominal) & $0.4^\circ$, $0.9^\circ$, $1.2^\circ$, $1.5^\circ$ \\
+Coarse Grid Spacing, $\Delta$ (km, $60\mathrm{S}^\circ-60\mathrm{N}^\circ$) & 22-44, 50-100, 67-134, 85-167 \\
+Gaussian Filter Width, $\overline{\Delta}$ & $1.2^\circ$, $2.7^\circ$, $3.6^\circ$, $4.5^\circ$; i.e., $\overline{\Delta}/\Delta=3$ \\
+Training / Validation / Test Splitting (years) & $181-188$ / $194$ / $199-200$ \\
+Snapshot Averaging Interval & 5 days \\
+Time Seperation Between Snapshots & 1 month \\
+Number of 2D Snapshots used for Training & $10 \times 4 \times 8 \times 12 = 3840$ \\
+Number of Training Iterations & $16000$ (each iteration randomly selects 2D snapshot) \\
+\midrule
+\textbf{ANN Parameters} & \\
+Input Size & $3 \times 3$ \\
+ANN type & Multilayer Perceptron (MLP) \\
+ANN used for offline analysis & 2 hidden layers, 32 neurons each, 2051 parameters \\
+ANN used in online implementation & 1 hidden layer with 20 neurons, 623 parameters \\
+Activation Function & ReLU \\
+Note & Regularization is not applied during training \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[]
+	\begin{center}
+		\begin{tabular}{l|cccc}
+			       RMSE  & $0^{\circ}\mathrm{E}$  & $15^{\circ}\mathrm{E}$ & $30^{\circ}\mathrm{E}$ & $45^{\circ}\mathrm{E}$\\ 
+            \hline 
+            Control($1/3^{\circ}$)     	 &  51.3 &  46.8 & 49.1 & 
+               36.8  \\
+               Yankovsky24($1/3^{\circ}$)     	 &  33.5 & 31.6 & 29.9 &  27.4   \\
+               ZB20-Reynolds($1/3^\circ$) & $\mathbf{32.7}$ &  25.4 &  $\mathbf{26.1}$ &  $\mathbf{21.6}$ \\
+               ANN($1/3^\circ$)             &  35.0 &  $\mathbf{24.3}$ &  30.9 &  28.6 \\
+            \hline
+		    Control($1/4^{\circ}$)     	 &  52.1  & 42.1 & 40.3 & 34.6  \\
+               Yankovsky24($1/4^{\circ}$)    &  27.8  & 23.0 & 20.7 & 21.3  \\
+               ZB20-Reynolds($1/4^{\circ}$)  &  $\mathbf{26.9}$  & 21.0 & 18.4 & $\mathbf{18.5}$ \\
+               ANN($1/4^{\circ}$)       & $29.2$ & $\mathbf{20.0}$ & $\mathbf{16.7}$ & $19.7$ \\
+            \hline
+            Control($1/6^\circ$) & 42.7 &  30.7 &  31.8 &  26.7  \\
+            Yankovsky24($1/6^\circ$) & 26.2 & 22.3 & 16.1 & 16.8  \\
+            ZB20-Reynolds($1/6^\circ$) &  27.7 &  24.5 & 18.9 & 18.4 \\
+            ANN($1/6^\circ$) & $\mathbf{23.5}$ & $\mathbf{18.8}$ & $\mathbf{13.8}$ & $\mathbf{14.6}$ 
+		\end{tabular}
+		\caption{Online results in idealized configuration NeverWorld2 at three coarse resolutions ($1/3^\circ$, $1/4^\circ$ and $1/6^\circ$). The root mean squared errors (RMSE) in 1000-day averaged position of interfaces over four meridional transects at longitudes $0^{\circ}\mathrm{E}$, $15^{\circ}\mathrm{E}$, $30^{\circ}\mathrm{E}$ and $45^{\circ}\mathrm{E}$. RMSE units are metres. The interfaces for Control and  ANN-parameterized runs at resolution $1/4^\circ$ at longitudes $0^{\circ}\mathrm{E}$ and $45^{\circ}\mathrm{E}$ are also shown in Figure S3. The error is computed w.r.t. $1/32^{\circ}$ model. Yankovsky24 stands for parameterization of \citeA{yankovsky2024}, ZB20-Reynolds stands for \citeA{zanna2020data} parameterization implemented and modified by \citeA{perezhogin2024stable}. Parameterizations are not retuned when resolution is changed.}
+	\end{center}
+\end{table}
+
+\begin{table}[]
+	\begin{center}
+		\begin{tabular}{l|c}
+                    & ACC transport [Sv] \\
+            \hline
+            $1/32^\circ$ & 235.3 \\
+            \hline 
+               Control($1/3^{\circ}$)     	 &  242.7  \\
+               Yankovsky24($1/3^\circ$)     & $\mathbf{237.4}$ \\
+               ZB20-Reynolds($1/3^\circ$)     & 230.2  \\
+               ANN($1/3^\circ$)             &  241.6 \\
+            \hline
+		    Control($1/4^{\circ}$)     	 & 245.1  \\
+               Yankovsky24($1/4^{\circ}$)    &  229.9  \\
+               ZB20-Reynolds($1/4^{\circ}$)  &  225.4 \\
+               ANN($1/4^{\circ}$)            & $\mathbf{236.9}$ \\
+            \hline
+               Control($1/6^{\circ}$)     	 & 243.3   \\
+               Yankovsky24($1/6^{\circ}$)    &  $\mathbf{230.4}$   \\
+               ZB20-Reynolds($1/6^{\circ}$)  &  219.5  \\
+               ANN($1/4^{\circ}$)            & 228.8 \\
+		\end{tabular}
+		\caption{Online results in idealized configuration NeverWorld2. The ACC transport through the Drake Passage at $0^\circ \mathrm{E}$ averaged over 800 days.}
+        \end{center}
+\end{table}
+
+\clearpage
+
+\begin{figure}[h!]
+\centering{\includegraphics[width=0.9\textwidth]{SGS-norm-depth-dependent.pdf}}
+\caption{Extension of Figure 1 in the main text with generalization of two ANN parameterizations to multiple unseen depths, but seen resolution used for training ($0.9^\circ$).
+}
+\end{figure}
+
+\begin{figure}[h!]
+\centering{\includegraphics[width=0.95\textwidth]{Figure-S1.pdf}}
+\caption{Upscale KE transfer (positive numbers correspond to backscatter) averaged over 800 days and integrated over depth in idealized NeverWorld2 configuration. (a) Diagnosed from high-resolution ($1/32^\circ$) simulation by filtering and coarsegraining, (b) and (c) predicted by the ANN offline and online, respectively, at coarse resolution $1/4^\circ$. The ANN was trained on global ocean data and thus generalizes well to a new configuration as seen in the accurate prediction of KE transfer offline. Prediction offline means that filtered and coarsegrained snapshots of the high-resolution model were given as inputs to the ANN. Slight degradation of prediction online is related to the difference in magnitude of small-scale velocity gradients and large-scale circulation patterns in the coarse ocean model.
+}
+\end{figure}
+
+
+\begin{figure}[h!]
+\centering{\includegraphics[width=1.0\textwidth]{interfaces_lon_0_lon_45_NW2-upd.pdf}}
+\caption{Online results in idealized configuration NeverWorld2. The 1000-days averaged isopycnal interfaces in the meridional transect of Drake Passage (Longitude $0^\circ \mathrm{E}$, left column) and at Longitude $45^\circ \mathrm{E}$. The blue dashed lines show the position of interfaces in the coarse-resolution ($1/4^\circ$) experiment, and the gray lines show the interfaces of the high‐resolution model $1/32^\circ$.  The root mean squared errors (RMSE) between coarse and high-resolution models are provided.
+}
+\end{figure}
+
+
+% \begin{figure}[h!]
+% \centering{\includegraphics[width=0.95\textwidth]{streamfunction-NW2-stable.pdf}}
+% \caption{Online results in idealized configuration NeverWorld2. The 1000-days averaged barotropic streamfunction (a-e) and change in depth-integrated APE (f). Note how a change in barotropic streamfunction is similar due to ANN parameterization (e) and due to increasing horizontal resolution (b), especially in the Southern hemisphere. Additionally, weakening of the barotropic streamfunction in the Southern Ocean due to the ANN parameterization (e) correlates with the APE reduction in the same place and (f).
+% }
+% \end{figure}
+
+\begin{figure}[h!]
+\centering{\includegraphics[width=0.95\textwidth]{NA-bias-upd.pdf}}
+\caption{Online results in the global ocean-ice model OM4 \cite{adcroft2019gfdl}, North Atlantic region. Comparison of the ANN parameterization to a baseline parameterization tested in \citeA{chang2023remote}. We consider biases in sea surface temperature (SST), sea surface salinity (SSS). Model output is averaged over years 1981-2007. The observational data for SST and SSS is given by the World Ocean Atlas 2018 (WOA18, \citeA{locarnini2018world}). Root mean square errors (RMSEs) between simulations and observations are provided. 
+}
+\end{figure}
+
+\begin{figure}[h!]
+\centering{\includegraphics[width=0.78\textwidth]{offline-online-relationship-extended.pdf}}
+\caption{Upper block: Offline performance of the mesoscale eddy parameterizations on CM2.6 data. Three versions of the ANN parameterization with dimensional scaling are shown, which are different in the number of neurons used or the size of the spatial stencil. Existing parameterizations, equation-discovery model (ZB20, \citeA{zanna2020data}) and anti-viscosity model \cite{chang2023remote}, are shown for comparison. Lower block: Kinetic energy (KE) and available potential energy (APE) in short 5-year OM4 parameterized simulations.}
+\end{figure}
+
+\begin{figure}[h!]
+\centering{\includegraphics[width=1.0\textwidth]{power-transfer.pdf}}
+\caption{(Upper row) Offline kinetic energy (KE) transfer spectrum, where $T(k) = 2 \pi k Re(\mathcal{F}(\mathbf{u})^*\mathcal{F}(\mathbf{S}))$, and $\mathcal{F}$ is the 2D Fourier transform, $Re$ is the real part, and $*$ is the complex conjugate. (Lower row) power spectrum of subfilter forcing $2\pi k \mathcal{F}(\mathbf{S})^*\mathcal{F}(\mathbf{S})$. Spectra are computed in the North Atlantic region $(25-45^\circ\mathrm{N})$$\times$$(60-40^\circ\mathrm{W})$ and at depth $5$m. $R_d=22.6$km is the Rossby deformation radius in this region. Results are shown for an ANN used in online simulations.
+
+We can identify two effects of the coarsening of the resolution on the diagnosed and predicted eddy fluxes. First, the diagnosed interscale energy transfer vanishes once the Rossby deformation radius becomes unresolved. This can be explained by the blocking of the inverse energy cascade on the scales much larger than the forcing scale (deformation radius). Second, the ANN parameterization predicts even smaller kinetic energy transfer at these coarse resolutions ($\approx 1^\circ$).
+
+It is a subject of future studies whether we should attempt to achieve more accurate predictions at these resolutions with improved architecture of the ANN or consider alternative parameterization approaches, such as parameterizing buoyancy fluxes instead, \citeA{balwada2025design}.
+}
+\end{figure}
+
+% \begin{figure}[h!]
+% \centering{\includegraphics[width=0.95\textwidth]{Kuroshio-bias.pdf}}
+% \caption{Same as the previous figure, but for the North Pacific region.
+% }
+% \end{figure}
+
+\clearpage
+
+\bibliography{agusample}
+
+\end{document}
+

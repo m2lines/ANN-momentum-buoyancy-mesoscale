@@ -1,0 +1,668 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% AGUJournalTemplate.tex: this template file is for articles formatted with LaTeX
+%
+% This file includes commands and instructions
+% given in the order necessary to produce a final output that will
+% satisfy AGU requirements, including customized APA reference formatting.
+%
+% You may copy this file and give it your
+% article name, and enter your text.
+%
+% guidelines and troubleshooting are here: 
+
+%% To submit your paper:
+\documentclass[draft]{agujournal2019}
+\usepackage{url, amsmath, amsfonts, booktabs} %this package should fix any errors with URLs in refs.
+\usepackage{subfiles}
+\usepackage{lineno}
+\usepackage[inline]{trackchanges} %for better track changes. finalnew option will compile document with changes incorporated.
+\usepackage{soul}
+\linenumbers
+%%%%%%%
+% As of 2018 we recommend use of the TrackChanges package to mark revisions.
+% The trackchanges package adds five new LaTeX commands:
+%
+%  \note[editor]{The note}
+%  \annote[editor]{Text to annotate}{The note}
+%  \add[editor]{Text to add}
+%  \remove[editor]{Text to remove}
+%  \change[editor]{Text to remove}{Text to add}
+%
+% complete documentation is here: http://trackchanges.sourceforge.net/
+%%%%%%%
+
+\draftfalse
+
+%% Enter journal name below.
+%% Choose from this list of Journals:
+%
+% JGR: Atmospheres
+% JGR: Biogeosciences
+% JGR: Earth Surface
+% JGR: Oceans
+% JGR: Planets
+% JGR: Solid Earth
+% JGR: Space Physics
+% Global Biogeochemical Cycles
+% Geophysical Research Letters
+% Paleoceanography and Paleoclimatology
+% Radio Science
+% Reviews of Geophysics
+% Tectonics
+% Space Weather
+% Water Resources Research
+% Geochemistry, Geophysics, Geosystems
+% Journal of Advances in Modeling Earth Systems (JAMES)
+% Earth's Future
+% Earth and Space Science
+% Geohealth
+%
+% ie, \journalname{Water Resources Research}
+
+\journalname{Geophysical Research Letters}
+
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  TITLE
+%
+% (A title should be specific, informative, and brief. Use
+% abbreviations only if they are defined in the abstract. Titles that
+% start with general keywords then specific terms are optimized in
+% searches)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Example: \title{This is a test title}
+%\title{A method to constrain parameterizations with physics for geophysical applications}
+
+% \title{Physical constraints for neural-network parameterizations in ocean models}
+
+\title{Physically-constrained neural-network parameterization of mesoscale eddies in global ocean model}
+%\title{Data-driven subgrid parameterization of ocean mesoscale eddies constrained with physics}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  AUTHORS AND AFFILIATIONS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Authors are individuals who have significantly contributed to the
+% research and preparation of the article. Group authors are allowed, if
+% each author in the group is separately identified in an appendix.)
+
+% List authors by first name or initial followed by last name and
+% separated by commas. Use \affil{} to number affiliations, and
+% \thanks{} for author notes.
+% Additional author notes should be indicated with \thanks{} (for
+% example, for current addresses).
+
+% Example: \authors{A. B. Author\affil{1}\thanks{Current address, Antartica}, B. C. Author\affil{2,3}, and D. E.
+% Author\affil{3,4}\thanks{Also funded by Monsanto.}}
+
+\authors{Pavel Perezhogin\affil{1}, Alistair Adcroft\affil{2}, Laure Zanna\affil{1}}
+
+% \affiliation{1}{First Affiliation}
+% \affiliation{2}{Second Affiliation}
+% \affiliation{3}{Third Affiliation}
+% \affiliation{4}{Fourth Affiliation}
+
+\affiliation{1}{Courant Institute of Mathematical Sciences, New York University, New York, NY, USA}
+\affiliation{2}{Program in Atmospheric and Oceanic Sciences, Princeton University, Princeton, NJ, USA}
+
+%\affiliation{1}{First Affiliation}
+% \affiliation{2}{Second Affiliation}
+% \affiliation{3}{Third Affiliation}
+% \affiliation{4}{Fourth Affiliation}
+
+%\affiliation{=number=}{=Affiliation Address=}
+%(repeat as many times as is necessary)
+
+
+% Corresponding author mailing address and e-mail address:
+
+% (include name and email addresses of the corresponding author.  More
+% than one corresponding author is allowed in this LaTeX file and for
+% publication; but only one corresponding author is allowed in our
+% editorial system.)
+
+% Example: \correspondingauthor{First and Last Name}{email@address.edu}
+
+\correspondingauthor{Pavel Perezhogin}{pp2681@nyu.edu}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% KEY POINTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  List up to three key points (at least one is required)
+%  Key Points summarize the main points and conclusions of the article
+%  Each must be 140 characters or fewer with no special characters or punctuation and must be complete sentences
+
+% Example:
+% \begin{keypoints}
+% \item	List up to three key points (at least one is required)
+% \item	Key Points summarize the main points and conclusions of the article
+% \item	Each must be 140 characters or fewer with no special characters or punctuation and must be complete sentences
+% \end{keypoints}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  ABSTRACT and PLAIN LANGUAGE SUMMARY
+%
+% A good Abstract will begin with a short description of the problem
+% being addressed, briefly describe the new data or analyses, then
+% briefly states the main conclusion(s) and how they are supported and
+% uncertainties.
+
+% The Plain Language Summary should be written for a broad audience,
+% including journalists and the science-interested public, that will not have 
+% a background in your field.
+%
+% A Plain Language Summary is required in GRL, JGR: Planets, JGR: Biogeosciences,
+% JGR: Oceans, G-Cubed, Reviews of Geophysics, and JAMES.
+% see http://sharingscience.agu.org/creating-plain-language-summary/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% \begin{abstract} starts the second page
+
+% \begin{abstract}
+% %Mesoscale eddies are poorly represented in climate ocean models, and therefore their effects on the large-scale circulation must be parameterized. Parameterizations, which represent the bulk effect of the unresolved eddies, can be improved with new subgrid models learned directly from data. \\
+% \noindent Here, we propose a method to constrain data-driven subgrid parameterizations with physical laws. We show how to impose the conservation of momentum and angular momentum, rotational invariance, Galilean invariance and dependence on grid spacing (scale-aware parameterization) and proper scaling with respect to change of physical dimensions which is based on Buckingham $\pi$ theorem or, alternatively, theory of homogeneous functions. Existing subgrid parameterizations, such as the Smagorinsky model or Zanna \& Bolton 2020 model are special cases of the proposed framework. Thus, our data-driven model can be seen as a natural generalization of existing physical models. 
+
+% We train a single NN for a range of coarse-graining factors and depths on global ocean data (CM2.6 dataset). The NN predicts subfilter momentum fluxes given the velocity gradients on a small spatial stencil of 3 horizontal points. The proposed parameterization is implemented into the MOM6 ocean model and is used in combination with the biharmonic Smagorinsky model. The only tuning performed is with respect to the filter-to-grid with ratio (FGR) parameter, which can be seen as a numerical, but not physical parameter. Parameterization shows competitive performance in Double Gyre and global ocean simulations.
+
+% \end{abstract}
+
+% \section*{Plain Language Summary}
+% Enter your Plain Language Summary here or delete this section.
+% Here are instructions on writing a Plain Language Summary: 
+% https://www.agu.org/Share-and-Advocate/Share/Community/Plain-language-summary
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  BODY TEXT
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% Suggested section heads:
+% \section{Introduction}
+%
+% The main text should start with an introduction. Except for short
+% manuscripts (such as comments and replies), the text should be divided
+% into sections, each with its own heading.
+
+% Headings should be sentence fragments and do not begin with a
+% lowercase letter or number. Examples of good headings are:
+
+% \section{Materials and Methods}
+% Here is text on Materials and Methods.
+%
+% \subsection{A descriptive heading about methods}
+% More about Methods.
+%
+% \section{Data} (Or section title might be a descriptive heading about data)
+%
+% \section{Results} (Or section title might be a descriptive heading about the
+% results)
+%
+% \section{Conclusions}
+
+\newpage
+
+
+\begin{figure}[h!]
+\includegraphics[width=\textwidth]{offline-4.pdf}%{generalization-2.pdf}
+\caption{(a) Schematic of the Artificial neural network (ANN) parameterizations (Eqs. \eqref{eq:model_1} or \eqref{eq:model_3}) working on $3\times3$ horizontal stencil.
+(b), (c), (d)
+Role of the dimensional scaling in ANN (Eq. \eqref{eq:model_3}, center column) compared to baseline ANN (Eq. \eqref{eq:model_1}, right column) for generalization across depth and resolutions. (b) Predictions of the subfilter fluxes at the depth ($5\mathrm{m}$) and resolution ($0.9^\circ$) used for training (testing data is separated by 10 years), (c) prediction at the same depth but the unseen resolution ($0.4^\circ$). (d) R-squared metric for various depths and resolutions not seen during training, where panels (b) and (c) correspond to yellow and orange boxes, respectively.}
+\label{fig:offline}
+\end{figure}
+
+Bullet points for Figure 1:
+\begin{itemize}
+    \item We study how the ANN model architecture affects its generalization ability
+    \item We demonstrate that unit invariance is essential to generalize to unseen grid spacings and depths
+    \item Parameterization without unit invariance has a reasonable correlation on unseen data, but the magnitude of prediction is wrong, and thus the R-squared is low
+    \item Unit invariance helps to improve the prediction even on the data similar to that used for training
+    \item ANN can be informed with grid spacing differently, by passing it as an input feature (Eq. \eqref{eq:model_2}). However, this would result in less efficient use of training data and less reliable predictions outside of the range of grid spacings used for training.
+\end{itemize}
+
+\clearpage
+
+\begin{figure}[h!]
+\includegraphics[width=\textwidth]{online-1.pdf}
+\caption{Left column: effect of increasing resolution of ocean model from $1/4^\circ$ to  $1/10^\circ$ in CM2-O climate models \cite{griffies2015impacts}. Right column: effect of ANN parameterization in coarse ocean model OM4 \cite{adcroft2019gfdl} ($1/4^\circ$). (a) and (b): diagnosed and predicted by ANN upscale kinetic energy transfer (positive values represent backscatter), (c) and (d): difference (denoted as  $\Delta$) in Eddy Kinetic Energy (EKE), (e) and (f): difference in Available Potential Energy (APE), and (g) and (h): barotropic streamfunction of coarse unparameterized model in contours and its difference in color (zero B.C. is applied at tip of South America; contour interval is 20Sv, with positive, negative and zero values in solid, dashed and thick contours, respectively).}
+\end{figure}
+
+Bullet points for Figure 2:
+\begin{itemize}
+    \item The parameterization successfully predicts upscale energy transfer (backscatter) in unseen scenarios (different numerical model, different resolution, online evaluation)
+    \item Upscale energy transfer is slightly overestimated, however, this is compensated by imposed dissipation in the ocean model (Smagorinsky)
+    \item Contrary to upgradient backscatter, our parameterization drains energy near the lateral boundaries, as it is expected to stabilize the boundary currents
+    \item The effect of parameterization should be similar to increasing horizontal resolution
+    \item Similarly to idealized studies, we quantify the parameterization effect on kinetic energy, potential energy and horizontal circulation
+    \item Parameterization increases the eddy kinetic energy by roughly the right amount, however, the EKE increase is confined to the western boundaries and there is missing variability in open Atlantic and Pacific oceans, and in Subpolar Gyres.
+    \item EKE increase in Southern Ocean has a complicated spatial pattern related to the interaction between WBCs (Brazil, Aghulas current, East Australian Current) and ACC, and qualitatively reproduced with the parameterization.
+    \item More energetic eddies increase the resolved mixing and drain APE from the Southern Ocean by slumping the isopycnals, in qualitative accordance with the high-resolution data.
+    \item Drain of APE correlates with the weakening of the barotropic transport in the Sothern Ocean via thermal wind balance in high resolution and parameterized models.
+    
+\end{itemize}
+
+
+
+
+%\subsection{Global ocean model OM4 with implemented ANN parameterization}
+
+
+
+%
+
+%
+
+%
+
+%
+
+
+
+%
+
+%
+
+%
+
+%
+
+\clearpage
+
+\begin{figure}[h!]
+\includegraphics[width=0.8\textwidth]{online-2.pdf}
+\caption{Comparison of ANN parameterization to negative viscosity backscatter parameterization \cite{chang2023remote, jansen2015energy}. Effect of mesoscale eddies is shown in its impact on KE, APE, and Drake Passage transport. Effect of restratification is demonstrated by a decrease of the globally-integrated potential temperature. Response of the AMOC and its connection to deep water formation (quantified by winter MLD) are shown. Change in the meridional heat flux and its impact on the ice thickness are shown. Response in the overturning in Southern Ocean demonstrates strengthening of overturning responsible for reducing slope of isopycnals.}
+\end{figure}
+
+Bullet points for Figure 3:
+\begin{itemize}
+    \item Response in some major climatological metrics, such as heat transport or AMOC, to resolving or parameterizing mesoscale eddies is not robust across different climate models  \cite{hewitt2020resolving}. The joint response of ACC and AMOC is even more complicated across different ocean models. Thus, here we compare the response with the response of another traditional backscatter parameterization.
+    \item We demonstrate that the response due to ANN parameterization is remarkably similar to the response due to traditional backscatter parameterization and includes the following expected properties:
+    \begin{itemize}
+        \item Increase of KE
+        \item Reduction of APE
+        \item Cooling of the ocean due to restratification by resolved eddies \cite{griffies2015impacts}
+        \item Reduction of the Drake Passage transport due to weakening the baroclinic component of the flow
+        \item Strengthening the DWBC as it is seen in deep branch of AMOC
+        \item Enhanced poleward heat transport in Southern Ocean related to APE release
+        \item Melting (formation) of the sea ice in Southern (Northern) hemispheres as a result of heat tranport response.
+        \item Enhanced counterclockwise residual circulation in the Southern Ocean related to APE release.
+    \end{itemize}
+    \item The main difference is observed in the response in Atlantic ocean which is related to difference in deep water formation.
+    \item As opposed to the Chang2023, our ANN parameterization shallows the mixed layer depth in Labrador Sea closer to the observations, resulting in suppressed deep water formation and weaker AMOC. 
+    \item Another reason for weaker upper AMOC branch may be enhanced dissipation of boundary currents by the ANN, as compared to the traditional backscatter which enhances the boundary currents. 
+    
+\end{itemize}
+
+\clearpage
+
+%%
+
+%  Numbered lines in equations:
+%  To add line numbers to lines in equations,
+%  \begin{linenomath*}
+%  \begin{equation}
+%  \end{equation}
+%  \end{linenomath*}
+
+
+
+%% Enter Figures and Tables near as possible to where they are first mentioned:
+%
+% DO NOT USE \psfrag or \subfigure commands.
+%
+% Figure captions go below the figure.
+% Acronyms used in figure captions will be spelled out in the final, published version.
+
+% Table titles go above tables;  other caption information
+%  should be placed in last line of the table, using
+% \multicolumn2l{$^a$ This is a table note.}
+% NOTE that there is no difference between table caption and table heading in the final, published version
+%
+%----------------
+% EXAMPLE FIGURES
+%
+% \begin{figure}
+% \includegraphics{example.png}
+% \caption{caption}
+% \end{figure}
+%
+% Giving latex a width will help it to scale the figure properly. A simple trick is to use \textwidth. Try this if large figures run off the side of the page.
+% \begin{figure}
+% \noindent\includegraphics[width=\textwidth]{anothersample.png}
+%\caption{caption}
+%\label{pngfiguresample}
+%\end{figure}
+%
+%
+% If you get an error about an unknown bounding box, try specifying the width and height of the figure with the natwidth and natheight options. This is common when trying to add a PDF figure without pdflatex.
+% \begin{figure}
+% \noindent\includegraphics[natwidth=800px,natheight=600px]{samplefigure.pdf}
+%\caption{caption}
+%\label{pdffiguresample}
+%\end{figure}
+%
+%
+% PDFLatex does not seem to be able to process EPS figures. You may want to try the epstopdf package.
+%
+
+%
+% ---------------
+% EXAMPLE TABLE
+%
+% \begin{table}
+% \caption{Time of the Transition Between Phase 1 and Phase 2$^{a}$}
+% \centering
+% \begin{tabular}{l c}
+% \hline
+%  Run  & Time (min)  \\
+% \hline
+%   $l1$  & 260   \\
+%   $l2$  & 300   \\
+%   $l3$  & 340   \\
+%   $h1$  & 270   \\
+%   $h2$  & 250   \\
+%   $h3$  & 380   \\
+%   $r1$  & 370   \\
+%   $r2$  & 390   \\
+% \hline
+% \multicolumn{2}{l}{$^{a}$Footnote text here.}
+% \end{tabular}
+% \end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SIDEWAYS FIGURES and TABLES
+% AGU prefers the use of {sidewaystable} over {landscapetable} as it causes fewer problems.
+%
+% \begin{sidewaysfigure}
+% \includegraphics[width=20pc]{figsamp}
+% \caption{caption here}
+% \label{newfig}
+% \end{sidewaysfigure}
+%
+%  \begin{sidewaystable}
+%  \caption{Caption here}
+% \label{tab:signif_gap_clos}
+%  \begin{tabular}{ccc}
+% one&two&three\\
+% four&five&six
+%  \end{tabular}
+%  \end{sidewaystable}
+
+%% If using numbered lines, please surround equations with \begin{linenomath*}...\end{linenomath*}
+%\begin{linenomath*}
+%\begin{equation}
+%y|{f} \sim g(m, \sigma),
+%\end{equation}
+%\end{linenomath*}
+
+%%% End of body of article
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Optional Appendices go here
+%
+% The \appendix command resets counters and redefines section heads
+%
+% After typing \appendix
+%
+%\section{Here Is Appendix Title}
+% will show
+% A: Here Is Appendix Title
+%
+
+
+%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Optional Glossary, Notation or Acronym section goes here:
+%
+% Glossary is only allowed in Reviews of Geophysics
+%  \begin{glossary}
+%  \term{Term}
+%   Term Definition here
+%  \term{Term}
+%   Term Definition here
+%  \term{Term}
+%   Term Definition here
+%  \end{glossary}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Acronyms
+%% NOTE that acronyms in the final published version will be spelled out when used in figure captions.
+%   \begin{acronyms}
+%   \acro{Acronym}
+%   Definition here
+%   \acro{EMOS}
+%   Ensemble model output statistics
+%   \acro{ECMWF}
+%   Centre for Medium-Range Weather Forecasts
+%   \end{acronyms}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Notation
+%   \begin{notation}
+%   \notation{$a+b$} Notation Definition here
+%   \notation{$e=mc^2$}
+%   Equation in German-born physicist Albert Einstein's theory of special
+%  relativity that showed that the increased relativistic mass ($m$) of a
+%  body comes from the energy of motion of the body—that is, its kinetic
+%  energy ($E$)—divided by the speed of light squared ($c^2$).
+%   \end{notation}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% DATA SECTION and ACKNOWLEDGMENTS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \section*{Open Research Section}
+% This section MUST contain a statement that describes where the data supporting the conclusions can be obtained. Data cannot be listed as ''Available from authors'' or stored solely in supporting information. Citations to archived data should be included in your reference list. Wiley will publish it as a separate section on the paper’s page. Examples and complete information are here:
+% https://www.agu.org/Publish with AGU/Publish/Author Resources/Data for Authors
+
+% \section*{As Applicable – Inclusion in Global Research Statement}
+% The Authorship: Inclusion in Global Research policy aims to promote greater equity and transparency in research collaborations. AGU Publications encourage research collaborations between regions, countries, and communities and expect authors to include their local collaborators as co-authors when they meet the AGU Publications authorship criteria (described here: https://www.agu.org/publications/authors/policies\#authorship). Those who do not meet the criteria should be included in the Acknowledgement section. We encourage researchers to consider recommendations from The TRUST CODE - A Global Code of Conduct for Equitable Research Partnerships (https://www.globalcodeofconduct.org/) when conducting and reporting their research, as applicable, and encourage authors to include a disclosure statement pertaining to the ethical and scientific considerations of their research collaborations in an “Inclusion in Global Research Statement’ as a standalone section in the manuscript following the Conclusions section. This can include disclosure of permits, authorizations, permissions and/or any formal agreements with local communities or other authorities, additional acknowledgements of local help received, and/or description of end-users of the research. You can learn more about the policy in this editorial. Example statements can be found in the following published papers: 
+% Holt et al. (https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2022JG007188), 
+% Sánchez-Gutiérrez et al. (https://agupubs.onlinelibrary.wiley.com/doi/abs/10.1029/2023JG007554), 
+% Tully et al. (https://agupubs.onlinelibrary.wiley.com/doi/epdf/10.1029/2022JG007128) 
+% Please note that these statements are titled as “Global Research Collaboration Statements” from a previous pilot requirement in JGR Biogeosciences. The pilot has ended and statements should now be titled “Inclusion in Global Research Statement”.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% REFERENCES and BIBLIOGRAPHY
+%
+% \bibliography{<name of your .bib file>} don't specify the file extension
+% don't specify bibliographystyle
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\bibliography{ enter your bibtex bibliography filename here }
+
+\clearpage
+
+\bibliography{agusample}
+
+
+
+%Reference citation instructions and examples:
+%
+% Please use ONLY \cite and \citeA for reference citations.
+% \cite for parenthetical references
+% ...as shown in recent studies (Simpson et al., 2019)
+% \citeA for in-text citations
+% ...Simpson et al. (2019) have shown...
+%
+%
+%...as shown by \citeA{jskilby}.
+%...as shown by \citeA{lewin76}, \citeA{carson86}, \citeA{bartoldy02}, and \citeA{rinaldi03}.
+%...has been shown \cite{jskilbye}.
+%...has been shown \cite{lewin76,carson86,bartoldy02,rinaldi03}.
+%... \cite <i.e.>[]{lewin76,carson86,bartoldy02,rinaldi03}.
+%...has been shown by \cite <e.g.,>[and others]{lewin76}.
+%
+% apacite uses < > for prenotes and [ ] for postnotes
+% DO NOT use other cite commands (e.g., \citet, \citep, \citeyear, \nocite, \citealp, etc.).
+%
+
+
+
+\end{document}
+
+
+
+More Information and Advice:
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  SECTION HEADS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Capitalize the first letter of each word (except for
+% prepositions, conjunctions, and articles that are
+% three or fewer letters).
+
+% AGU follows standard outline style; therefore, there cannot be a section 1 without
+% a section 2, or a section 2.3.1 without a section 2.3.2.
+% Please make sure your section numbers are balanced.
+% ---------------
+% Level 1 head
+%
+% Use the \section{} command to identify level 1 heads;
+% type the appropriate head wording between the curly
+% brackets, as shown below.
+%
+%An example:
+%\section{Level 1 Head: Introduction}
+%
+% ---------------
+% Level 2 head
+%
+% Use the \subsection{} command to identify level 2 heads.
+%An example:
+%\subsection{Level 2 Head}
+%
+% ---------------
+% Level 3 head
+%
+% Use the \subsubsection{} command to identify level 3 heads
+%An example:
+%\subsubsection{Level 3 Head}
+%
+%---------------
+% Level 4 head
+%
+% Use the \subsubsubsection{} command to identify level 3 heads
+% An example:
+%\subsubsubsection{Level 4 Head} An example.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  IN-TEXT LISTS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Do not use bulleted lists; enumerated lists are okay.
+% \begin{enumerate}
+% \item
+% \item
+% \item
+% \end{enumerate}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  EQUATIONS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Single-line equations are centered.
+% Equation arrays will appear left-aligned.
+
+Math coded inside display math mode \[ ...\]
+ will not be numbered, e.g.,:
+ \[ x^2=y^2 + z^2\]
+
+ Math coded inside \begin{equation} and \end{equation} will
+ be automatically numbered, e.g.,:
+ \begin{equation}
+ x^2=y^2 + z^2
+ \end{equation}
+
+
+% To create multiline equations, use the
+% \begin{eqnarray} and \end{eqnarray} environment
+% as demonstrated below.
+\begin{eqnarray}
+  x_{1} & = & (x - x_{0}) \cos \Theta \nonumber \\
+        && + (y - y_{0}) \sin \Theta  \nonumber \\
+  y_{1} & = & -(x - x_{0}) \sin \Theta \nonumber \\
+        && + (y - y_{0}) \cos \Theta.
+\end{eqnarray}
+
+%If you don't want an equation number, use the star form:
+%\begin{eqnarray*}...\end{eqnarray*}
+
+% Break each line at a sign of operation
+% (+, -, etc.) if possible, with the sign of operation
+% on the new line.
+
+% Indent second and subsequent lines to align with
+% the first character following the equal sign on the
+% first line.
+
+% Use an \hspace{} command to insert horizontal space
+% into your equation if necessary. Place an appropriate
+% unit of measure between the curly braces, e.g.
+% \hspace{1in}; you may have to experiment to achieve
+% the correct amount of space.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  EQUATION NUMBERING: COUNTER
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% You may change equation numbering by resetting
+% the equation counter or by explicitly numbering
+% an equation.
+
+% To explicitly number an equation, type \eqnum{}
+% (with the desired number between the brackets)
+% after the \begin{equation} or \begin{eqnarray}
+% command.  The \eqnum{} command will affect only
+% the equation it appears with; LaTeX will number
+% any equations appearing later in the manuscript
+% according to the equation counter.
+%
+
+% If you have a multiline equation that needs only
+% one equation number, use a \nonumber command in
+% front of the double backslashes (\\) as shown in
+% the multiline equation above.
+
+% If you are using line numbers, remember to surround
+% equations with \begin{linenomath*}...\end{linenomath*}
+
+%  To add line numbers to lines in equations:
+%  \begin{linenomath*}
+%  \begin{equation}
+%  \end{equation}
+%  \end{linenomath*}
+
+
+

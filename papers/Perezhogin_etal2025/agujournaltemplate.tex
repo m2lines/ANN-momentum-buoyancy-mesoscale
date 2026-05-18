@@ -1,0 +1,948 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% AGUJournalTemplate.tex: this template file is for articles formatted with LaTeX
+%
+% This file includes commands and instructions
+% given in the order necessary to produce a final output that will
+% satisfy AGU requirements, including customized APA reference formatting.
+%
+% You may copy this file and give it your
+% article name, and enter your text.
+%
+% guidelines and troubleshooting are here: 
+
+%% To submit your paper:
+\documentclass[draft]{agujournal2019}
+\usepackage{url, amsmath, amsfonts, booktabs} %this package should fix any errors with URLs in refs.
+\usepackage{subfiles}
+\usepackage{lineno}
+\usepackage[inline]{trackchanges} %for better track changes. finalnew option will compile document with changes incorporated.
+\usepackage{soul}
+
+\newcommand*\patchAmsMathEnvironmentForLineno[1]{
+  \expandafter\let\csname old#1\expandafter\endcsname\csname #1\endcsname
+  \expandafter\let\csname oldend#1\expandafter\endcsname\csname end#1\endcsname
+  \renewenvironment{#1}
+  {\linenomath\csname old#1\endcsname}
+  {\csname oldend#1\endcsname\endlinenomath}}
+  \newcommand*\patchBothAmsMathEnvironmentsForLineno[1]{
+  \patchAmsMathEnvironmentForLineno{#1}
+  \patchAmsMathEnvironmentForLineno{#1*}}
+  \AtBeginDocument{
+  \patchBothAmsMathEnvironmentsForLineno{equation}
+  \patchBothAmsMathEnvironmentsForLineno{align}
+  \patchBothAmsMathEnvironmentsForLineno{flalign}
+  \patchBothAmsMathEnvironmentsForLineno{alignat}
+  \patchBothAmsMathEnvironmentsForLineno{gather}
+  \patchBothAmsMathEnvironmentsForLineno{multline}
+}
+
+%%%%%%%
+% As of 2018 we recommend use of the TrackChanges package to mark revisions.
+% The trackchanges package adds five new LaTeX commands:
+%
+%  \note[editor]{The note}
+%  \annote[editor]{Text to annotate}{The note}
+%  \add[editor]{Text to add}
+%  \remove[editor]{Text to remove}
+%  \change[editor]{Text to remove}{Text to add}
+%
+% complete documentation is here: http://trackchanges.sourceforge.net/
+%%%%%%%
+
+\draftfalse
+
+%% Enter journal name below.
+%% Choose from this list of Journals:
+%
+% JGR: Atmospheres
+% JGR: Biogeosciences
+% JGR: Earth Surface
+% JGR: Oceans
+% JGR: Planets
+% JGR: Solid Earth
+% JGR: Space Physics
+% Global Biogeochemical Cycles
+% Geophysical Research Letters
+% Paleoceanography and Paleoclimatology
+% Radio Science
+% Reviews of Geophysics
+% Tectonics
+% Space Weather
+% Water Resources Research
+% Geochemistry, Geophysics, Geosystems
+% Journal of Advances in Modeling Earth Systems (JAMES)
+% Earth's Future
+% Earth and Space Science
+% Geohealth
+%
+% ie, \journalname{Water Resources Research}
+
+\journalname{Geophysical Research Letters}
+
+
+\begin{document}
+\linenumbers
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  TITLE
+%
+% (A title should be specific, informative, and brief. Use
+% abbreviations only if they are defined in the abstract. Titles that
+% start with general keywords then specific terms are optimized in
+% searches)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Example: \title{This is a test title}
+%\title{A method to constrain parameterizations with physics for geophysical applications}
+
+% \title{Physical constraints for neural-network parameterizations in ocean models}
+
+%\title{Physics-constrained neural-network parameterization of mesoscale eddies in a global ocean model}
+% Length rules: https://www.agu.org/publications/authors/journals/text-graphics-requirements#guidelines#guidelines
+% Length rules: https://www.agu.org/publications/authors/journals#:~:text=Word%20and%20LaTeX)-,Paper%20Types,%2C%20references%2C%20and%20supporting%20information.
+%TC:ignore 
+\title{Generalizable neural-network parameterization of mesoscale eddies in idealized and global ocean models}
+%TC:endignore
+%\title{Data-driven subgrid parameterization of ocean mesoscale eddies constrained with physics}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  AUTHORS AND AFFILIATIONS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Authors are individuals who have significantly contributed to the
+% research and preparation of the article. Group authors are allowed, if
+% each author in the group is separately identified in an appendix.)
+
+% List authors by first name or initial followed by last name and
+% separated by commas. Use \affil{} to number affiliations, and
+% \thanks{} for author notes.
+% Additional author notes should be indicated with \thanks{} (for
+% example, for current addresses).
+
+% Example: \authors{A. B. Author\affil{1}\thanks{Current address, Antartica}, B. C. Author\affil{2,3}, and D. E.
+% Author\affil{3,4}\thanks{Also funded by Monsanto.}}
+%TC:ignore 
+\authors{Pavel Perezhogin\affil{1}, Alistair Adcroft\affil{3}, Laure Zanna\affil{1,2}}
+
+% \affiliation{1}{First Affiliation}
+% \affiliation{2}{Second Affiliation}
+% \affiliation{3}{Third Affiliation}
+% \affiliation{4}{Fourth Affiliation}
+
+\affiliation{1}{Courant Institute of Mathematical Sciences, New York University, New York, NY, USA}
+\affiliation{2}{Center for Data Science, New York University, New York, NY, USA}
+
+\affiliation{3}{Program in Atmospheric and Oceanic Sciences, Princeton University, Princeton, NJ, USA}
+%\affiliation{1}{First Affiliation}
+% \affiliation{2}{Second Affiliation}
+% \affiliation{3}{Third Affiliation}
+% \affiliation{4}{Fourth Affiliation}
+%TC:endignore
+%\affiliation{=number=}{=Affiliation Address=}
+%(repeat as many times as is necessary)
+
+
+% Corresponding author mailing address and e-mail address:
+
+% (include name and email addresses of the corresponding author.  More
+% than one corresponding author is allowed in this LaTeX file and for
+% publication; but only one corresponding author is allowed in our
+% editorial system.)
+
+% Example: \correspondingauthor{First and Last Name}{email@address.edu}
+
+\correspondingauthor{Pavel Perezhogin}{pp2681@nyu.edu}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% KEY POINTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  List up to three key points (at least one is required)
+%  Key Points summarize the main points and conclusions of the article
+%  Each must be 140 characters or fewer with no special characters or punctuation and must be complete sentences
+
+% Example:
+% \begin{keypoints}
+% \item	List up to three key points (at least one is required)
+% \item	Key Points summarize the main points and conclusions of the article
+% \item	Each must be 140 characters or fewer with no special characters or punctuation and must be complete sentences
+% \end{keypoints}
+
+%TC:ignore 
+
+\begin{keypoints}
+%\item We propose a small data-driven subgrid model for parameterization of subgrid mesoscale momentum fluxes
+%\item A single neural-network parameterization is accurate for a range of resolutions and depths
+
+\item Physics constraints are developed for the neural-network parameterization of mesoscale eddy fluxes
+
+\item Constraint for dimensional scaling  improves offline generalization to unseen grid resolutions and depths
+
+%\item A single neural-network parameterization is accurate offline for a range of resolutions and depths in global ocean simulation data
+
+\item New parameterization improves the representation of kinetic and potential energy online in coarse idealized and global ocean models
+
+%A single data-driven model is accurate offline for a range of resolutions and depths on global ocean simulation data
+
+%and turbulence regimes %and is evaluated in global ocean model without retuning
+%\item Parameterization improves variability of the global eddy-permitting ocean model %and affects the long-standing biases 
+%once implemented online
+\end{keypoints}
+
+%TC:endignore
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  ABSTRACT and PLAIN LANGUAGE SUMMARY
+%
+% A good Abstract will begin with a short description of the problem
+% being addressed, briefly describe the new data or analyses, then
+% briefly states the main conclusion(s) and how they are supported and
+% uncertainties.
+
+% The Plain Language Summary should be written for a broad audience,
+% including journalists and the science-interested public, that will not have 
+% a background in your field.
+%
+% A Plain Language Summary is required in GRL, JGR: Planets, JGR: Biogeosciences,
+% JGR: Oceans, G-Cubed, Reviews of Geophysics, and JAMES.
+% see http://sharingscience.agu.org/creating-plain-language-summary/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% \begin{abstract} starts the second page
+
+\begin{abstract}
+Data-driven methods have become popular to parameterize the effects of mesoscale eddies in ocean models. However, they perform poorly in generalization tasks and may require retuning if the grid resolution or ocean configuration changes. We address the generalization problem by enforcing physical constraints on a neural network parameterization of mesoscale eddy fluxes. We found that the local scaling of input and output features helps to generalize to unseen grid resolutions and depths offline in the global ocean. The scaling is based on dimensional analysis and incorporates grid spacing as a length scale. We formulate our findings as a general algorithm that can be used to enforce data-driven parameterizations with dimensional scaling. The new parameterization improves the representation of kinetic and potential energy in online simulations with idealized and global ocean models. Comparison to baseline parameterizations and impact on global ocean biases are discussed. 
+\end{abstract}
+
+%TC:ignore 
+\section*{Plain Language Summary}
+Ocean models can't directly simulate eddies that are smaller than the resolution of the computational grid. The effect of these eddies is represented by parameterizations.  Machine learning offers a new way to build parameterizations directly from data, however, such parameterizations may fail when tested in new, unseen scenarios. Here, we leverage physics constraints to mitigate this, generalization, problem. Specifically, we found that method of dimensional analysis can be used to constrain data-driven parameterizations to enhance their accuracy in new scenarios without the need for retraining. New parameterization is tested in a realistic ocean model and brings us closer to robust, data-driven methods for ocean and climate models.
+%TC:endignore
+% Enter your Plain Language Summary here or delete this section.
+% Here are instructions on writing a Plain Language Summary: 
+% https://www.agu.org/Share-and-Advocate/Share/Community/Plain-language-summary
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  BODY TEXT
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% Suggested section heads:
+% \section{Introduction}
+%
+% The main text should start with an introduction. Except for short
+% manuscripts (such as comments and replies), the text should be divided
+% into sections, each with its own heading.
+
+% Headings should be sentence fragments and do not begin with a
+% lowercase letter or number. Examples of good headings are:
+
+% \section{Materials and Methods}
+% Here is text on Materials and Methods.
+%
+% \subsection{A descriptive heading about methods}
+% More about Methods.
+%
+% \section{Data} (Or section title might be a descriptive heading about data)
+%
+% \section{Results} (Or section title might be a descriptive heading about the
+% results)
+%
+% \section{Conclusions}
+
+\section{Introduction}
+Numerical ocean models rely on parameterizations to represent the effects of physical processes smaller than the model grid spacing, which are unresolved \cite{fox2019challenges, hewitt2020resolving, christensen2022parametrization}. %The need for parameterizations will persist in the future, as ocean dynamics spans a wide range of scales. 
+Recently, there has been a growing interest in applying machine learning methods to parameterize these subgrid physics in ocean models \cite{Bolton2019, zanna2020data, guillaumin2021stochastic, zhang2023implementation, Sane2023, yan2024choice, perezhogin2024stable, maddison2024online}. However, developing data-driven parameterizations for ocean models is still in its early stages, and their application is often limited to idealized configurations. Deploying data-driven parameterizations in the global ocean presents several challenges, one of which is addressed in this study -- the problem of generalization to unseen scenarios.
+
+
+Data-driven parameterizations rely heavily on sets of training data, and their successful implementation often requires tuning when applied to a new grid resolution \cite{zhang2023implementation}, flow regime \cite{ross2022benchmarking}, model configuration \cite{perezhogin2024stable}, depth, or geographical region \cite{gultekin2024analysis}. However, in practice, it would be desirable to have a single parameterization that performs effectively across a variety of scenarios without requiring retuning. The ability of a data-driven model to work on new (testing) data, which is distinct from the training data, is measured by the \textit{generalization error} \cite{bishop2006pattern, hastie2009elements}. Data-driven methods work best when the testing data is drawn from the same distribution as the training data. However, in geophysical applications, the distribution of physical variables can vary vastly across different scenarios—a phenomenon referred to as a \textit{distribution shift} \cite{beucler2024climate, gultekin2024analysis}. In this case, domain knowledge and physics constraints can be leveraged to mitigate the generalization error of data-driven models \cite{kashinath2021physics}.
+
+%Data-driven methods work best when the testing data is drawn from the same distribution as the training data. 
+%However, in geophysical applications, the distribution of physical variables can vary vastly across different scenarios—a phenomenon referred to as a \textit{distribution shift} \cite{beucler2024climate, gultekin2024analysis}
+%Data-driven parameterizations heavily rely on sets of training data, and their implementation often requires tuning due to changes in grid resolution \cite{zhang2023implementation}, flow regime \cite{ross2022benchmarking}, model configuration \cite{perezhogin2024stable}, layer depth, or geographical region \cite{gultekin2024analysis}. However, in practice, it is desirable to have a single parameterization that performs effectively across a variety of scenarios without requiring retuning.
+%In this case, domain knowledge and physical constraints can be leveraged to mitigate the generalization error of data-driven models \cite{kashinath2021physics}.
+
+
+%In this work we demonstrate how dimensional analysis and \citeA{buckingham1914physically}'s Pi theorem can be leveraged as a suitable normalization technique, to rescale features of a ML model to minimize distribution shifts. 
+% We apply these ideas to propose an Artificial Neural Network (ANN) parameterization of the ocean mesoscale eddy fluxes with vastly improved generalization capabilities over past efforts.
+% Specifically, we introduce a local dimensional scaling constructed from the grid spacing and velocity gradients \cite{prakash2022invariant}. The local scaling improves offline generalization of the ANN parameterization to unseen grid resolutions and layer depths, as found in the global ocean dataset CM2.6 \cite{griffies2015impacts}. ... you can fill in rest here... 
+
+In this work, we demonstrate how physics constraints can be leveraged to enhance the generalization of an Artificial Neural Network (ANN) parameterization of the ocean mesoscale eddy fluxes. Following \citeA{beucler2024climate}, we rescale features of the ANN to minimize the distribution shift. To identify a suitable normalization technique for eddy fluxes, we apply dimensional analysis and \citeA{buckingham1914physically}'s Pi theorem. Specifically, we introduce a local dimensional scaling constructed from the grid spacing and velocity gradients \cite{prakash2022invariant}. The local scaling improves offline generalization of the ANN parameterization to unseen grid resolutions and depths, as found in the global ocean dataset CM2.6 \cite{griffies2015impacts}. Our findings are formulated as a general algorithm that can be used to incorporate the dimensional scaling in future applications. Additional physics constraints for the ANN parameterization are enforced following \citeA{guan2022learning} and \citeA{srinivasan2024turbulence}. %We enforce additional physics constraints for the parameterization of eddy fluxes, such as Galilean invariance, conservation of momentum and angular momentum, and rotational and reflection invariance, similarly to \citeA{guan2022learning} and \citeA{srinivasan2024turbulence}. 
+We present an online evaluation of the new ANN parameterization in the GFDL MOM6 ocean model \cite{adcroft2019gfdl} in idealized and global configurations.
+%We show high offline generalization skill of the proposed parameterization in global ocean data and evaluate the parameterization online in the global GFDL MOM6 ocean model.
+
+%In this work, we build on the recent evaluations of mesoscale closures of \citeA{zanna2020data} (ZB20) and \citeA{guillaumin2021stochastic} (GZ21) in GFDL MOM6 ocean model \cite{perezhogin2024stable, zhang2023implementation}. GZ21 parameterization is a big convolutional neural network (CNN) model that has high offline accuracy but may fail to extrapolate to unseen scenarios, such as different layer depth and grid spacing \cite{gultekin2024analysis}. On the other hand, ZB20 is an equation-discovery model that obeys proper dimensional scaling and is informed by the grid spacing. Thus, it generalizes to unseen scenarios reasonably well. However, ZB20 is a small pointwise model and it has lower offline accuracy compared to GZ21 on the training data. \citeA{perezhogin2024stable} suggested ad hoc filtering techniques for ZB20 that incorporate spatial nonlocality to improve its performance. Here, we learn the non-local parameterization with the artificial neural network (ANN) directly from data using the same input features as ZB20, but defined on a spatial stencil of $3 \times 3$ points. A similar non-local extension was also suggested in \citeA{srinivasan2024turbulence}. We leverage the method of \citeA{prakash2022invariant} to enforce proper dimensional scaling for a new parameterization. 
+
+
+% In this paper, we propose a data-driven methodology for parameterization of subgrid mesoscale eddies in ocean models which is constrained with physics. We build upon two recent papers devoted to the implementation of equation discovery ZB20 parameterization \cite{perezhogin2023implementation} and convolutional neural network (CNN) \cite{zhang2023implementation}. Both approaches have strengths and weaknesses, and we imply building a subgrid parameterization of intermediate complexity. In \cite{perezhogin2023implementation} we found that pointwise ZB20 expression for subgrid fluxes is not sufficiently accurate and additional non-locality is required to efficiently parameterize backscatter (in that work, we were using ad-hoc filters). In \cite{zhang2023implementation} we found that CNNs have high computational costs. Additionally, they may have issues with predicting near the boundaries \cite{zhang2024addressing} and generalization errors across depth and geographical regions \cite{gultekin2024analysis}. Thus, we aim to propose an ML model with the smallest possible non-locality (on a spatial stencil of $3 \times 3$ points), constraining with physics to enhance generalization ability and eliminate tuning in a posteriori experiments.
+
+
+\section{A Method to Constrain Neural Network with Dimensional Scaling} \label{sec:unit_invariance}
+
+%The GFDL MOM6 ocean model \cite{adcroft2019gfdl} adheres to dimensional scaling: the simulated flows are similar (equal up to rescaling) when the units of length and time are multiplied by arbitrary powers of $2$. This property, however, may be violated by data-driven parameterizations unless dimensional scaling is explicitly enforced as a hard constraint.
+Here we introduce the concept of physical dimensionality and demonstrate how it can be used to constrain data-driven parameterizations. % and discuss which restrictions it imposes on the data-driven model. These restrictions will later be invoked to derive a dimensional scaling for the data-driven parameterization. 
+We start with a trivial example, followed by a general algorithm. Finally, we draw connections to existing approaches.
+
+
+%Our goal is to develop a methodology for incorporating normalization based on dimensional scaling into ANN parameterizations. 
+
+\subsection{Trivial Example}
+%We begin by showing how physical dimensionality constrains an equation involving three scalar variables relevant to the eddy parameterization introduced later. %The specific meaning of these variables is unimportant, though they resemble variables used later in the paper.
+
+Consider the case where a scalar momentum flux $T$ (units of $\mathrm{m}^2 \mathrm{s}^{-2}$) can be predicted using a length scale $\Delta$ (units of $\mathrm{m}$) and inverse  time scale $X$ (units of $\mathrm{s}^{-1}$):
+\begin{equation}
+    T = f(\Delta, X). \label{eq:eq_dimensional}
+\end{equation}
+%function $f_{\theta}$ has trainable parameters $\theta$. % that can be optimized given pairs of inputs $(\Delta, X)$ and outputs ($T$). %In this paper, we consider artificial neural networks (ANNs) in place of $f_{\theta}$. %Physical dimensionality highly constrains the class of functions $f_{\theta}$ that can be used for fitting Eq. \eqref{eq:eq_dimensional}. For example, a candidate function $f_{\theta}(\Delta, \sigma) = \Delta$ is not permitted by dimensional analysis. 
+Eq. \eqref{eq:eq_dimensional} must remain invariant under rescaling the units of time and length, that is for any $\alpha, \beta>0$, the equality must hold: $f( \alpha \Delta, \beta X) = \alpha^2 \beta^2 f(\Delta, X)$. However, the unit invariance can be violated when $f$ is parameterized by neural networks. One way to enforce it is by leveraging \citeA{buckingham1914physically}'s Pi theorem, which states that the dimensional equation  (such as Eq. \eqref{eq:eq_dimensional}) can be rewritten in non-dimensional form. Specifically, for a set of three dimensional variables ($T$, $\Delta$, $X$) with two independent dimensions (length and time), there is only one (three minus two) non-dimensional variable ($\pi_1=T/ (\Delta^2 X^2)$). Thus, Eq. \eqref{eq:eq_dimensional} transforms to  $\pi_1=\mathrm{const}$, or equivalently: \begin{equation}
+    T = \Delta^2 X^2 \theta, \label{eq:non_dim}
+\end{equation}
+where $\theta$ can be interpreted as a non-dimensional \citeA{smagorinsky1963general} coefficient. A data-driven parameterization in the form of Eq. \eqref{eq:non_dim} with a trainable parameter $\theta$, which is constant, follows the dimensional scaling as a hard constraint, in contrast to Eq. \eqref{eq:eq_dimensional}, which does not guarantee dimensional consistency. Eq. \eqref{eq:non_dim} promotes generalization as it explicitly accounts for the change in the magnitude of independent variables ($\Delta$ and $X$), constraining the learnable part of the mapping ($\theta$) to be on the order of unity. %Note that Eq. \eqref{eq:non_dim} contains a traditional scaling of the momentum flux as a special case if we interpret $C_S$ as a \citeA{smagorinsky1963general} coefficient.
+
+
+\subsection{General Algorithm} \label{sec:general_algorithm}
+
+Extending the example above, we suggest an algorithm to enforce dimensional scaling in  ANN parameterizations by preprocessing input and output features:
+\begin{enumerate}
+    \item Identify the input features that contribute significantly to the accurate prediction of the output features;
+    \item Construct non-dimensional input and output features from a \textit{combined} set of identified input and output features;
+    %\item  Parameterize a mapping between non-dimensional features by  ANN;
+    \item Verify that a traditional known parameterization is a special case of the constructed non-dimensional mapping. 
+\end{enumerate}
+
+%The presented methodology is inspired by and closely related to the works of \citeA{prakash2022invariant, prakash2024invariant}. % where steps 2 and 4 are shown for gradient-based subgrid parameterizations in 3D turbulence. 
+%Ablation studies can be invoked to evaluate the gain in offline performance from including additional dimensional features in the input set (step 1 above).
+Step 1 follows standard dimensional analysis textbooks \cite{bridgman1922dimensional, barenblatt1996scaling}.
+Specifically, a relevant set of input features can be identified by physical intuition or through ablation studies by evaluating the gain in offline performance from including additional dimensional features in the input set. 
+Constructing non-dimensional features is a common approach in physics-constrained data-driven parameterizations \cite{ling2016reynolds, schneider2024opinion}. However, the normalization of input features is often considered separately from the normalization of output features \cite{xie2020modeling, kang2023neural, beucler2024climate, christopoulos2024online}, unlike our proposed method (step 2 above). Additionally, the emphasis in these works is often placed on identifying normalization factors that minimize the distribution shift, while we suggest starting with identifying features responsible for the prediction (step 1). Finally, traditional parameterizations are often used to propose efficient normalization factors \cite{xie2020modeling, kang2023neural, connolly2025deep}, while we instead advocate for having traditional parameterizations as a special case (step 3, \citeA{prakash2022invariant, prakash2024invariant}).
+%
+%
+
+
+\section{Physics Constraints for Ocean Mesoscale Parameterization}
+
+
+\begin{figure}[h!]
+\centering{\includegraphics[width=0.9\textwidth]{offline-upd.pdf}}
+\caption{(a) Artificial neural network (ANN) parameterization predicting the subfilter fluxes given the velocity gradients on the horizontal stencil of $3$$\times$$3$ points. (b) Snapshots of predictions by two ANNs: with local dimensional scaling (Eq. \eqref{eq:model_3}, center column) or with fixed normalization coefficients (Eq. \eqref{eq:model_1}, right column) at the resolution ($0.9^\circ$) and depth ($5\mathrm{m}$) used for training (testing data is separated by 10 years). (c) Prediction at the unseen resolution ($0.4^\circ$) and the same depth ($5$m). (d) Coefficient of determination ($\mathrm{R}^2$) in prediction of subfilter fluxes for various resolutions and depths, different from that used for training ($0.9^\circ$, $5$m). The $\mathrm{R}^2$ is averaged over 2 years of held-out data and excludes 2 grid points adjacent to the coastline, where green and orange boxes correspond to panels (b) and (c), respectively.
+}
+\label{fig:offline}
+\end{figure}
+
+Our goal is to predict the subfilter momentum fluxes of mesoscale eddies using an Artificial Neural Network (ANN) parameterization, see schematic in Figure \ref{fig:offline}(a). Various physical invariances were imposed to promote generalization.
+
+\subsection{Learning Subfilter Fluxes}
+We consider the acceleration produced by subfilter ocean mesoscale eddies \cite<subfilter forcing,>{Bolton2019}:
+\begin{equation}
+    \partial_t \overline{\mathbf{u}} = \mathbf{S} = (\overline{\mathbf{u}} \cdot \nabla ) \overline{\mathbf{u}} - \overline{(\mathbf{u} \cdot \nabla) \mathbf{u}},  \label{eq:subfilter_forcing}
+\end{equation}
+where $\mathbf{u}=(u,v)$ is the horizontal ocean  velocity, $\nabla=(\partial_x, \partial_y)$ is the horizontal gradient, and $\overline{(\cdot)}$ is the horizontal filter. The subfilter forcing can be approximated \cite{loose2023comparing} as a divergence of the momentum flux:
+\begin{equation}
+    \mathbf{S} \approx \nabla \cdot \mathbf{T} \label{eq:momentum_div}
+\end{equation}
+where
+\begin{equation}
+    \mathbf{T} = \begin{pmatrix}
+        T_{xx} & T_{xy} \\
+        T_{xy} & T_{yy}
+    \end{pmatrix} = \begin{pmatrix}
+        \overline{u}  \, \overline{u} - \overline{u u} & \overline{u} \, \overline{v} - \overline{uv} \\
+        \overline{u} \, \overline{v} - \overline{uv} & 
+        \overline{v}  \, \overline{v} - \overline{v v}
+    \end{pmatrix}. \label{eq:momentum_flux}
+\end{equation}
+%Exact equality in Eq. \eqref{eq:momentum_div} can be restored using thickness-weighted averaging \cite{loose2023comparing} which we neglect here. 
+We predict the three components of $ \mathbf{T}$, namely   $T_{xx}$, $T_{xy}$, $T_{yy}$, similarly to \citeA{zanna2020data} (ZB20 hereafter) to (i) impose momentum conservation as a hard constraint, (ii) enforce symmetry of the tensor, which leads to angular momentum conservation \cite[Section 17.3.3]{griffies2018fundamentals}.
+%Parameterizing tensor $\mathbf{T}$ instead of $\mathbf{S}$ (as in \citeA{guillaumin2021stochastic}) allows us to implement momentum conservation as a hard constraint. Additionally, predicting only three components ($T_{xx}$, $T_{xy}$, $T_{yy}$) of the tensor $\mathbf{T}$ enforces its symmetry which is responsible for conservation of angular momentum \cite[Section 17.3.3]{griffies2018fundamentals}.
+
+We learn the components of $\mathbf{T}$ by minimizing the  mean squared error (MSE) loss function:
+\begin{equation}
+\mathcal{L}_{\mathrm{MSE}} = ||(\mathbf{S} - \nabla \cdot \widehat{\mathbf{T}}) \cdot m ||_2^2 ~ / ~||\mathbf{S} \cdot m||_2^2, \label{eq:mse_loss}
+\end{equation}
+where $m$ is the mask of wet points and $\widehat{\mathbf{T}} \equiv \widehat{\mathbf{T}}(\mathbf{X})$ is the prediction of the subfilter flux with $\mathbf{X}$ being the vector of input features discussed below. See SI for further details.  
+
+\subsection{Input Features}
+
+Following ZB20, we consider the components of the strain-rate tensor and vorticity as input features for prediction:
+\begin{gather}
+    \begin{aligned}
+        \overline{\sigma}_S & = \partial_y \overline{u} + \partial_x \overline{v} && \text{-- shearing strain,} \\
+        \overline{\sigma}_T & = \partial_x \overline{u} - \partial_y \overline{v} && \text{-- horizontal tension/stretch,} \\
+        \overline{\omega} & = \partial_x \overline{v} - \partial_y \overline{u} && \text{-- relative vorticity.}
+    \end{aligned} \label{eq:ZB_features}
+\end{gather}
+These input features exclude explicit dependence on the velocity, guaranteeing Galilean invariance of the parameterization \cite{srinivasan2024turbulence,pope1975more, lund1993parameterization, ling2016reynolds}. When using the input features (Eq. \eqref{eq:ZB_features}) pointwise, the resulting ANN parameterization highly correlates with the ZB20 equation-discovery model. Thus, we decided to include the non-local contribution of these features \cite{srinivasan2024turbulence}. To do so, the input vector to the ANN consists of velocity gradients, each defined on a $3 \times 3$ horizontal stencil and flattened into a vector of length 9 (denoted as $\left[ \cdot \right]{\updownarrow \scriptstyle 9}$):
+\begin{equation}
+    \mathbf{X} =
+    \begin{pmatrix}
+        \left[ \overline{\sigma}_S \right]{\updownarrow \scriptstyle 9}  \\
+        \left[ \overline{\sigma}_T \right]{\updownarrow \scriptstyle 9} \\
+        \left[ \overline{\omega} \right]{\updownarrow \scriptstyle 9}
+    \end{pmatrix} \in \mathbb{R}^{27}. \label{eq:stack_features}
+\end{equation}
+% \begin{equation}
+%     \left[ \overline{\omega} \right]_{3 \times 3} \equiv
+%     \begin{pmatrix}
+%     \overline{\omega}_{i-1,j-1} \\
+%     \overline{\omega}_{i-1,j~~~} \\
+%     \vdots \\
+%     \overline{\omega}_{i+1,j+1}
+%     \end{pmatrix}
+%      \in \mathbb{R}^{9},
+% \end{equation}
+% where $i$ and $j$ are horizontal indices in the coarse ocean model.
+Including information about velocity gradients from the closest neighboring points is a common approach in subgrid modeling \cite{maulik2017neural, maulik2019subgrid, pawar2020priori, wang2021artificial, wang2022constant, gultekin2024analysis}.
+
+%
+
+\subsection{Neural Network Parameterizations} \label{sec: eddy_param}
+
+We consider a baseline data-driven parameterization of eddy fluxes with fixed normalization coefficients:
+\begin{equation}
+    \mathbf{T} \approx \widehat{\mathbf{T}}(\mathbf{X}) = a_{\mathrm{T}} \mathrm{ANN}_{\theta}(\mathbf{X} / a_{\mathrm{X}}), \label{eq:model_1}
+\end{equation}
+where $\mathrm{ANN}_{\theta}$ is the neural network with trainable parameters $\theta$,  $\mathbf{X}$ is the input features (Eq. \eqref{eq:stack_features}), and coefficients $a_{\mathrm{T}}=$$10^{-2}$m$^2$s$^{-2}$ and $a_{\mathrm{X}}=$ $10^{-6}$s$^{-1}$ approximate the standard deviations of eddy fluxes and velocity gradients in our dataset.
+Using fixed normalization coefficients in parameterizations similar to Eq. \eqref{eq:model_1} is a common practice \cite{srinivasan2024turbulence}. Below, we contrast this approach to a normalization that follows solely from dimensional analysis presented in Section \ref{sec:unit_invariance}.
+
+To facilitate generalization across different resolutions of the coarse grid \cite<scale-aware or grid-aware parameterization,>{bachman2017scale}, we include the grid spacing of the coarse model $\Delta = \sqrt{\Delta x \Delta y}$ to a set of input features \cite{lund1993parameterization, li2025transformer}:
+\begin{equation}
+    \mathbf{T} \approx \widehat{\mathbf{T}}(\mathbf{X}, \Delta). \label{eq:model_2}
+\end{equation}
+Including grid spacing is physically justified as velocity gradients and momentum fluxes differ in dimensionality and require a length scale to be invoked.
+%The need to include grid spacing as an input feature can be justified in two additional ways. First, we found that this improves offline skill.  Second, velocity gradients and momentum fluxes have different physical dimensionality and thus cannot be related without a length scale invoked.
+
+Finally, we enforce parameterization given in Eq. \eqref{eq:model_2} with the dimensional scaling. A combined set of input and output features ($\mathbf{T}$, $\mathbf{X}$, $\Delta$) is used to construct non-dimensional input ($\mathbf{X} / ||\mathbf{X}||_2$) and output ($\mathbf{T} / (\Delta ||\mathbf{X}||_2)^2$) features, where $||\mathbf{X}||_2= \sqrt{\sum_i X_i^2}$. This normalization of features is local, that is computed separately for each grid point. By designing the ANN to operate on non-dimensional variables, we propose a parameterization with the local dimensional scaling \cite{reissmann2021application, prakash2022invariant}:
+\begin{equation}
+    \widehat{\mathbf{T}}(\mathbf{X}, \Delta) = \Delta^2 ||\mathbf{X}||_2^2 \mathrm{ANN}_{\theta} (\mathbf{X} / ||\mathbf{X}||_2). \label{eq:model_3}
+\end{equation}
+According to the \citeA{buckingham1914physically}'s Pi theorem, there is freedom in constructing non-dimensional variables. We opt to use the non-dimensional vector $\mathbf{X} / ||\mathbf{X}||_2$ to constrain the range of its components between $-1$ and $1$, thereby reducing the distribution shift in ANN inputs. The model form (Eq. \eqref{eq:model_3}) admits ZB20, Smagorinsky, biharmonic Smagorinsky, and \citeA{leith1996stochastic} parameterizations as special cases, with well-behaved functional representations, see Text S1 in SI for details.
+
+\subsection{Summary on Physics Constraints}
+Parameterization in Eq. \eqref{eq:model_3} encapsulates conservation of momentum, angular momentum, Galilean invariance, and local dimensional scaling. %By additional preprocessing of input/output features or by constraining matrices in ANN we could additionally enforce rotational and reflection invariances. However, here we opt for a simpler solution -- we achieve these with data augmentation \cite{guan2022learning}: 
+In addition, we also independently rotate the training snapshots by $90^\circ$ degrees, and reflect them along $x$ and $y$ axes, creating $8=2^3$ training snapshots from one snapshot to promote rotational and reflection invariances via data augmentation \cite{guan2022learning}.
+
+
+
+\section{Results}
+
+\subsection{Training and offline generalization}
+% Bullet points for Figure 1:
+% \begin{itemize}
+%     \item Our goal is to demonstrate that local dimensional scaling is essential to generalize to unseen grid spacings and depths
+%     \item Local dimensional scaling helps to improve the prediction even on the data similar to that used for training
+%     \item Changing the resolution introduces the distribution shift, which is alleviated by the local dimensional scaling which adjusts the magnitude of the predictions and improves generalization of the ANN.
+%     \item Increasing the layer depth is associated with another distribution shift when the input/output features are too small. Local dimensional scaling helps to adjust the magnitude of the prediction in this case.
+% \end{itemize}
+
+
+%% Motivation. Not yet realted to describing figure
+We train ANNs to predict the divergence of subfilter fluxes (Eq. \eqref{eq:mse_loss}) using filtered velocity gradients (Eq. \eqref{eq:ZB_features}) as input features. Our main goal is to demonstrate that the local dimensional scaling promotes the generalization to unseen grid resolutions and  depths. Limited generalization in such scenarios has been reported for previous machine-learning models of mesoscale eddies \cite{zhang2023implementation, gultekin2024analysis,ross2022benchmarking} and traditional physics-based parameterizations \cite{yankovsky2024}. The training dataset is created using the climate model CM2.6 \cite{griffies2015impacts} with a $0.1^\circ$ ocean component. Input and output features are diagnosed by filtering and coarse-graining the climate model data. The filtering is Gaussian \cite{grooms2021diffusion} with a filter width three times the coarse grid spacing. See Text S2 and Table S1 in SI for details. % the description of the training data, ANN model architecture, loss function, and training algorithm. 
+
+%In Figure \ref{fig:offline}(b), we show the results of the offline evaluation of ANN parameterizations on held-out data. 
+We compare two ANNs: one incorporating local dimensional scaling (Eq. \eqref{eq:model_3}) and a baseline ANN with fixed normalization coefficients (Eq. \eqref{eq:model_1}). Both ANNs are very small and have only one hidden layer with 20 neurons, chosen to fit the ANN inference time within 10\% of ocean model runtime (see Texts S2 and S3 in SI). To explore generalization, we let the ANNs learn based solely on data from one combination of depth ($5$m) and coarse grid spacing ($0.9^\circ$) during training. The offline evaluation of ANNs on held-out data similar to that used for training is shown in Figure \ref{fig:offline}(b). Since there is no distribution shift between training and testing data, the baseline ANN demonstrates reasonably high pattern correlation ($0.83$) and $\mathrm{R}^2$ ($0.56$) in the prediction of subfilter fluxes. Incorporating the local dimensional scaling improves the pattern correlation ($0.91$) and $\mathrm{R}^2$ ($0.79$) due to the latitudinal dependence of the grid spacing over the domain. 
+
+We now consider generalization to different grid resolutions, which results in a distribution shift between testing and training data. % because it has an opposite effect on the magnitude of the input and output features. 
+Refining the grid spacing assigns fewer eddies to the subfilter scales but more eddies to the resolved scales, leading to weaker subfilter fluxes but stronger velocity gradients. Figure \ref{fig:offline}(c) shows snapshots of ANN predictions at a grid resolution which is finer ($0.4^\circ$) compared to that used for training ($0.9^\circ$). The baseline ANN parameterization (Eq. \eqref{eq:model_1}) predicts subfilter fluxes at a new grid resolution with a reasonably high pattern correlation ($0.75$). However, the magnitude of the prediction is too large, resulting in a low  $\mathrm{R}^2$ ($-6.16$).  %The ANN incorporating the local dimensional scaling (Eq. \eqref{eq:model_3}) has an improved generalization ability. 
+Instead, the ANN with dimensional scaling (Eq. \eqref{eq:model_3}) naturally accounts for the reduction of the grid spacing and reduces the magnitude of the prediction, resulting in high pattern correlation ($0.92$) and $\mathrm{R}^2$ (0.83) metrics (Figure \ref{fig:offline}(c)).
+
+The generalization to both finer and coarser grids, and additionally to different depths, is summarized in Figure \ref{fig:offline}(d). At coarser grid spacings ($1.2^\circ$, $1.5^\circ$) compared to that used for training ($0.9^\circ$), the local dimensional scaling again helps to achieve higher $\mathrm{R}^2$ by increasing the magnitude of the prediction. In the deep layers, the subfilter fluxes and velocity gradients are considerably smaller than near the surface. Thus, a baseline ANN, trained near the surface (such as here, at depth $5$m), can lead to overestimating the magnitude of the prediction at depth, resulting in a negative $\mathrm{R}^2$. However, the local dimensional scaling adjusts the prediction proportionally to the square magnitude of the velocity gradients. It improves the generalization to deep unseen layers, resulting in a high $\mathrm{R}^2$ ($\approx 0.8$ at resolution $0.9^\circ$).
+
+\subsection{Online evaluation in the MOM6 ocean model}
+\begin{figure}[h!]
+\centering{\includegraphics[width=0.8\textwidth]{Figure-2.pdf}}
+\caption{
+Effect of increasing resolution in idealized configuration NeverWorld2 \cite{marques2022neverworld2} in the upper row, where $\overline{1/32^\circ}$ represents filtered and coarse-grained high-resolution simulation.  Impact of the ANN parameterization with local dimensional scaling (Eq. \eqref{eq:model_3}) online at resolution $1/4^\circ$ in the lower row.
+We consider three depth-integrated metrics: difference (denoted as  $\Delta$) in Eddy Kinetic Energy (EKE) (left column); diagnosed and predicted online upscale kinetic energy transfer (center column) (positive values represent backscatter);  difference in Available Potential Energy (APE) (right column). All metrics are averaged over 160 snapshots corresponding to the last 800 days of the simulations.
+}
+\label{fig:online-1}
+\end{figure}
+
+We implement the proposed mesoscale eddy parameterization and evaluate it online in two considerably different configurations of the GFDL MOM6 ocean model \cite{adcroft2019gfdl}. The difference between the two different ocean configurations and the training set (CM2.6) in horizontal resolution, vertical coordinate, numerics, and topography motivated us to use all depths and grid resolutions shown in Figure \ref{fig:offline}(d) for training. The retrained ANN with the local dimensional scaling (Eq. \eqref{eq:model_3}) has a comparable offline skill to the version described earlier, but is less tied to any specific resolution or depth. The ANN parameterization, as expected, occasionally predicts upgradient fluxes, which can cause numerical instabilities. Therefore, the grid-scale dissipation is used and given by a biharmonic Smagorinsky scheme with viscosity coefficient $\nu_4 = 0.06 \sqrt{\overline{\sigma}_S^2+\overline{\sigma}_T^2} \Delta^4$   \cite{adcroft2019gfdl}, applied in control and parameterized (mixed modeling, \citeA{meneveau2000scale}) simulations. Note that we aimed to implement the ANN parameterization without any modifications. However, some adjustments were necessary for numerical stability in an idealized ocean configuration, see implementation details in Text S3 in SI. 
+
+%Online evaluation is performed in a coarse ocean model, GFDL MOM6 \cite{adcroft2019gfdl}, and presents several challenges. First, the coarse ocean model can interact with the ANN parameterization, causing numerical instabilities. Second, the online simulations are performed at an eddy-permitting resolution ($1/4^\circ$), which is finer than any included in the training set.  %Second, we consider two substantially different ocean configurations of MOM6 with minimal retuning of the parameterization. 
+ %, implying a difference in discretizations. %a further complexity arises due to differences in configurations and vertical coordinates between the MOM6 model and CM2.6 training data. 
+
+%During generation of the training data, we must make a choice on how to separate horizontal scales into resolved and subfilter. This choice is controlled by the parameter representing the filter width in relation to the coarse grid spacing. This parameter affects the ANN parameterization strength and thus its online performance. We calibrated the filter width by trial and error, considering the dissipative mechanisms present in the ocean model (see Text S3 in the Supplementary Information). Once the filter scale is chosen, we opt to minimize adjusting the ANN parameterization strength.
+
+% We plan to evaluate how the trained ANN parameterization works online in considerably different configurations of the MOM6 ocean model while minimizing the adjustment of the parameterization strength. Note that some tuning for numerical stability was nevertheless necessary in an idealized ocean configuration, see implementation details in Text S3 in SI. The grid-scale dissipation is given by a biharmonic Smagorinsky scheme with viscosity coefficient $\nu_4 = 0.06 \sqrt{\overline{\sigma}_S^2+\overline{\sigma}_T^2} \Delta^4$   \cite{adcroft2019gfdl}, both in parameterized (mixed modeling, \citeA{meneveau2000scale}) and control simulations. %Implementation details and tuning for numerical stability are described in Text S2 in Supplementary Information. 
+
+\subsubsection{Idealized configuration NeverWorld2} \label{sec:nw2}
+
+We first consider an idealized adiabatic ocean configuration NeverWorld2 (NW2, \citeA{marques2022neverworld2}), which generates various circulation patterns similar to the global ocean but allows us to isolate the effect of mesoscale eddies. Our goal is to show that the impact of the ANN parameterization on the flow is similar to that of increasing the horizontal resolution. 
+
+The NW2 configuration is based on the stacked shallow water equations with 15 fluid layers. The configuration includes an idealized Southern Ocean with a reentrant channel and an idealized Mid-Atlantic Ridge spanning both hemispheres. The circulation is driven by a steady wind forcing and consists of an idealized Antarctic Circumpolar Current (ACC), and Gyres circulation. We initialize coarse simulations at rest, and run for $30000$ days, similar to \citeA{marques2022neverworld2} and \citeA{perezhogin2024stable}.
+
+%
+Mesoscale eddies extract available potential energy (APE) from the mean flow, which is then converted into the eddy kinetic energy (EKE) \cite{salmon1980baroclinic}. At an eddy-permitting resolution ($1/4^\circ$), this energy pathway is partially unresolved \cite{jansen2014parameterizing, mana2014toward, juricke2019ocean, loose2023diagnosing}. As a result, the coarse ocean model has too low EKE and too large APE when compared to the filtered and coarse-grained high-resolution simulation, denoted as $\overline{1/32^\circ}$ (Figure \ref{fig:online-1}(a,c)). However, Figure \ref{fig:online-1}(a) suggests that the missing eddies can be nominally resolved on the coarse grid. Traditional backscatter parameterizations are designed to directly reduce this EKE bias by energizing the resolved eddies \cite{jansen2014parameterizing}. More energetic eddies extract more APE via enhanced turbulent mixing \cite{yankovsky2024}.
+
+Eddy backscatter is diagnosed when the kinetic energy transfer produced by the subfilter forcing (Eq. \eqref{eq:subfilter_forcing}) is predominantly positive (upscale), as shown in Figure \ref{fig:online-1}(b).
+%Eddy backscatter can be diagnosed as the positive (upscale) kinetic energy transfer produced by the subfilter forcing (Eq. \eqref{eq:subfilter_forcing}), see Figure \ref{fig:online-1}(b). 
+We verified that our ANN parameterization accurately predicts the eddy backscatter offline (Figure S1 in SI), suggesting reasonable generalization capabilities of our approach. In Figure \ref{fig:online-1}(e), we show a more challenging task -- the prediction of the eddy backscatter online once the ANN is coupled to the coarse ocean model. The online prediction of eddy backscatter grossly resembles the diagnosed data shown in Figure \ref{fig:online-1}(b), although there are slight differences caused by the difference in distributions of input features.
+
+The kinetic energy injection from the ANN parameterization leads to an increase in EKE that aligns with the high-resolution data, in particular in the ACC region ($40^\circ \mathrm{S}-60^\circ\mathrm{S}$), near the western boundaries, and in the subtropics ($20^\circ \mathrm{S}-20^\circ\mathrm{N}$), see Figure \ref{fig:online-1}(d). %This EKE enhancement is consistent with the eddy backscatter produced by the ANN (Figure \ref{fig:online-1}(e)).  
+However, the EKE increase in western boundary current extension ($40^\circ\mathrm{N}$, $10^\circ\mathrm{E}-20^\circ\mathrm{E}$) and subpolar gyre ($50^\circ\mathrm{N}-70^\circ\mathrm{N}$) is smaller than expected from the high-resolution simulation. The spatial pattern of APE reduction in the parameterized simulation is close to that produced by increasing horizontal resolution (Figure \ref{fig:online-1}(f)). The APE is predominantly reduced in the Southern Ocean and ACC regions ($40^\circ \mathrm{S}-70^\circ\mathrm{S}$), followed by APE reduction in gyres ($20^\circ \mathrm{N}-60^\circ\mathrm{N}$, $20^\circ \mathrm{S}-40^\circ\mathrm{S}$). Local patches of  APE increase in the higher resolution model (Figure \ref{fig:online-1}(c)) correspond to enhanced horizontal recirculation and are reproduced by the ANN parameterization, but less accurately compared to the diagnosed APE reduction. % Something about non-locality of APE extraction
+
+
+%
+
+%
+
+%
+
+%
+
+
+\begin{figure}[h!]
+\centering{\includegraphics[width=0.9\textwidth]{Figure3.pdf}}
+\caption{Online evaluation of the ANN parameterization in the global ocean-ice model OM4 \cite{adcroft2019gfdl} at eddy-permitting resolution ($1/4^\circ$). The following depth-integrated diagnostics are averaged over a year of 2003: (a) upscale kinetic energy transfer predicted by the ANN parameterization online, (b) difference in Eddy kinetic energy (EKE), (c) difference in Available potential energy (APE).
+}
+\label{fig:online-2}
+\end{figure}
+
+\subsubsection{Global ocean-sea-ice model OM4}
+We next evaluate the ANN parameterization in the global ocean model OM4 \cite{adcroft2019gfdl}. Unlike in the idealized configuration, the interaction of many physical processes in driving the circulation in the global ocean model impede our ability to directly isolate the effect of mesoscale eddies \cite{ferrari2009ocean, levy2010modifications}. Building on the dynamical expectations established in the idealized NW2 configuration, our goal is to assess whether the global ocean model exhibits similar response patterns to the eddy parameterization.
+%Our goal is to identify similar response patterns in the global ocean model as those found in the idealized configuration NW2. 
+
+The OM4 configuration is a coupled ocean-sea-ice model forced on the air-sea interface by prescribing the atmosphere state according to the CORE-II interannual forcing (IAF) protocol \cite{large2009global}. The simulations span 60 years (1948-2007) and were initialized with a state of the Control model at year 1977 (after 270 years of spin-up following the repeating CORE-II IAF protocol).
+
+%The response patterns similar to increasing horizontal resolution, discussed above, are found in global parameterized simulation. 
+The prediction of the kinetic energy injection by the ANN parameterization online is shown in Figure \ref{fig:online-2}(a). Similarly to the idealized configuration, the kinetic energy is injected in the subtropical gyres, %(of the North Atlantic, North Pacific, and Indian oceans), 
+near the western boundaries, and occasionally in the ACC region. The energy injection is accompanied by an increase of the EKE in the same locations, see Figure \ref{fig:online-2}(b). However, compared to the pattern found in an idealized configuration, the EKE decrease appears more frequently: along topographic features in the subpolar gyres of the North Atlantic and North Pacific oceans, and occasionally in the ACC region. The decrease of EKE in these regions is due to a shift or weakening of the mean currents, potentially as a result of the removal of kinetic energy by the ANN parameterization along the lateral boundaries, changes in deep water formation, and/or changes in global overturning circulation. The complexity of the model prohibits us from identifying a single mechanism. 
+
+Similarly to the idealized configuration, APE is primarily reduced in the Southern Ocean, with minor APE reductions observed in the Subpolar Gyres of the North Atlantic and North Pacific oceans. APE is additionally reduced in the Arctic Ocean despite the lack of eddy activity in this region. However, this reduction likely represents a change in the global reference density profile used to compute the APE.
+
+
+\section{Discussion}
+
+We discuss the implications of our results, highlighting a few lessons learned. 
+
+\textbf{Role of the grid spacing in the prediction.} Here we consider the alternatives to the local dimensional scaling (Eq. \eqref{eq:model_3}) which invokes the coarse grid spacing as a length scale. Instead of using grid spacing that way, we tried to pass it as an input feature (Eq. \eqref{eq:model_2}). This approach gives comparable offline performance for multiple coarse resolutions as long as they are included in the training dataset. In contrast, improving the prediction in the full water column does not require additional inputs -- this can be achieved by including multiple depths into the training dataset and increasing the neural network size.  These results further support our claim in Section \ref{sec:general_algorithm} that efficient normalization starts with identifying which dimensional features are essential for accurate prediction. Incorporating local dimensional scaling as done in this work, therefore, requires less training data and smaller networks to achieve similar skill on in-distribution data, while also improving generalization to unseen grid spacings and depths.
+%Incorporating local dimensional scaling, therefore, requires less training data and smaller networks to achieve similar skill on in-distribution data, and it leads to more reliable generalization to unseen grid spacings and depths (out-of-distribution generalization). %  ANN with the local dimensional scaling, therefore, requires less training data and smaller neural networks to produce predictions with comparable skill on the data similar to that used for training (in-distribution generalization), but with improved predictions outside of the range of training data (out-of-distribution generalization). 
+
+%This lesson additionally emphasizes that if the goal is to develop an efficient normalization technique, then identifying dimensional features responsible for accurate prediction greatly streamlines this process, as we state in Section \ref{sec:general_algorithm}.   %This lesson emphasizes that the normalization techniques should be developed after the features responsible for accurate prediction are identified, as we state in Section \ref{sec:general_algorithm}.
+
+\textbf{Implications of APE changes in NW2.} 
+The accurate representation of APE considered in this study directly impacts metrics relevant to the global ocean. The reduction in APE leads to flattening of isopycnals and improves the structure of isopycnal interfaces across multiple cross-sections in NW2 (Figure S3 in SI), along with a weakening of ACC transport through the Drake Passage (Table S3 in SI).
+
+\textbf{Parameterization at coarser and finer resolutions. } %We tested the ANN parameterization online in NW2 at coarser ($1/3^\circ$) and finer ($1/6^\circ$) resolutions compared to the resolution used in Section \ref{sec:nw2}. 
+We performed online simulations at resolutions $1/3^\circ$, $1/4^\circ$, and $1/6^\circ$ in NW2 with the ANN parameterization and existing backscatter schemes \cite{yankovsky2024, perezhogin2024stable}. Across these resolutions, the ANN parameterization performs similarly or better than the baselines in representing the structure of isopycnal interfaces, with more accurate results found at finer resolutions ($1/4^\circ$, $1/6^\circ$), see Table S2 in SI. Implementation of the ANN parameterization at $1/2^\circ$ resolution did not lead to any robust improvements compared to the control simulation.  At this resolution in NW2, we are faced with less resolved eddies, weaker velocity gradients, and stronger eddy viscosity. All of these changes might contribute to the poor performance of the parametrization at this resolution.  %Improving the online implementation of the data-driven closure at $1/2^\circ$ resolution might require retuning \cite{perezhogin2024stable}, or accounting for eddy viscosity online \cite{jansen2014parameterizing} or offline  \cite{mana2014toward}.  
+At coarser resolutions ($\approx 1^\circ$), offline learning of the subfilter fluxes is even more challenging as the  Rossby deformation radius is no longer resolved (Figure S2 in SI). At this resolution, bulk approaches for parameterizations might be more reliable. In addition, the extraction of available potential energy might also be more important to directly parameterize \cite{bachman2019gm, jansen2019toward, grooms2024stochastic, perezhogin2025large}. 
+
+
+\textbf{Global ocean model biases.} \\
+
+\begin{figure}[h!]
+\centering{\includegraphics[width=0.9\textwidth]{Figure-4.pdf}}
+\caption{Comparison of the ANN parameterization to the negative viscosity backscatter parameterization \cite{chang2023remote} in the global ocean-ice model OM4. Kinetic energy (KE) and Available potential energy (APE) are integrated globally. Potential temperature is averaged globally. ACC transport is computed at the Drake Passage section at $70^\circ$W, and AMOC is computed as the maximum over depth streamfunction at $26.5^\circ$N. Model output is averaged over the years 1981-2007. Observational data for potential temperature is given by World Ocean Atlas 2018 (WOA18, \citeA{locarnini2018world}), for ACC transport with error bar is given by cDrake \cite{donohue2016mean}, and for AMOC is given by RAPID \cite{cunningham2007temporal}  averaged over 2004-2021 years with error bar showing interannual standard deviation.
+}
+\label{fig:online_metrics}
+\end{figure}
+We examined responses in more complex metrics of the global ocean circulation as opposed to APE/KE. For this purpose, we confront our ANN parameterization to a traditional anti-viscosity parameterization representing mesoscale eddy effects \cite{jansen2015energy} and already tested in OM4 by \citeA{chang2023remote}. 
+
+%The global ocean circulation is maintained by a complex balance of physical processes and has a complicated response to resolving or parameterizing mesoscale eddies \cite{hewitt2020resolving}.
+
+Following the analysis of \citeA{chang2023remote}, we found that both ANN and anti-viscosity parameterizations reduce the regional biases in the Gulf Stream region, see Figure S4 in SI for the biases in sea surface temperature and salinity. The response in other metrics of the global ocean circulation is remarkably similar for both parameterization approaches as well, see Figure \ref{fig:online_metrics}. Specifically, both parameterizations increase the globally integrated kinetic energy by roughly the same percentage and reduce the APE by nearly the same percentage. The restratification effect of mesoscale eddies leads to the reduction of the globally-averaged potential temperature \cite{griffies2015impacts, adcroft2019gfdl}. As discussed before, the transport through the Drake Passage is reduced in both simulations with the anti-viscosity and ANN parameterizations, see also \citeA{grooms2024stochastic}. Unlike in \citeA{chang2023remote}, both parameterizations weaken the Atlantic meridional circulation (AMOC). This suggests that the AMOC response depends on the ocean model state, perhaps to a greater extent than the details of mesoscale eddy parameterizations. The response of some global metrics (ACC, AMOC, globally-averaged potential temperature) does not project onto the existing ocean model biases. 
+That is, both parameterized ocean simulations are less consistent with the observational data (Figure \ref{fig:online_metrics}). 
+Here, we note that the goal was to test the effect of the parameterizations, rather than reducing model biases.  In particular, a full recalibration of the ocean model might be needed, particularly for physical processes that compete with mesoscale eddies in setting ACC and AMOC strength and average potential temperature. 
+
+\section{Conclusions}
+
+%ANN has a potential for generalization across resolutions online though further work is required at coarser resolutions
+
+%Data-driven parameterization has a competitive skill in idealized configuration at higher resolutions. However, coarser resolutions and global ocean model require additional attention. We should learn how to create data-driven parameterizations which are able to compete with traditional counterparts in fully realistic applications. Realistic applications, however, may be vastly different from idealized simulations in many technical details such that need for calibration of multiple physical processes.
+
+%We addressed the critical challenge of generalization in artificial neural network (ANN) parameterizations of mesoscale eddies by embedding physical constraints directly into the network architecture. Specifically, we demonstrated that enforcing dimensional scaling through the \citeA{buckingham1914physically}'s Pi-theorem improves extrapolation to unseen grid spacings and depths, outperforming the traditional normalization technique. This approach can be applied to other neural network parameterizations where physical consistency and generalization are important.%, for example, to parameterize mesoscale eddy buoyancy fluxes \cite{gent1990isopycnal, connolly2025deep}.
+We address the generalization issue of  ANN parameterizations of mesoscale eddies by embedding physical constraints into the inputs, outputs, and parametrization itself. The \citeA{buckingham1914physically}'s Pi-theorem and dimensional analysis are invoked to obtain local normalization coefficients. The ANN parameterization with local dimensional scaling significantly outperforms the ANN with fixed normalization coefficients offline, demonstrating superior generalization to unseen grid resolutions and depths in the global ocean data CM2.6. A general algorithm for constructing dimensional scaling is discussed, which can be applied to other neural-network parameterizations.
+
+The proposed ANN parameterization with dimensional scaling is successfully tested online in the GFDL MOM6 ocean model. It accurately predicts upscale kinetic energy transfer, despite many challenges presented by online implementation. The parameterization modifies the energy pathways by energizing the resolved eddies and reducing APE, consistent with the expected restratification effects of mesoscale eddies. These improvements hold across idealized (NW2) and global ocean (OM4) configurations, with the most pronounced APE reduction occurring in the Southern Ocean. The ANN parameterization generalizes well in diverse online simulations. Specifically, the ANN achieves comparable or better online results than existing backscatter parameterizations \cite{chang2023remote, yankovsky2024, perezhogin2024stable}, without requiring significant retuning between idealized and global ocean configurations. Moreover, the ANN performs well online in NW2 for a range of eddy-permitting resolutions ($1/3^\circ$, $1/4^\circ$, $1/6^\circ$) without retuning. %, with notably improved performance at the finest resolution. 
+However, generalization to very coarse resolutions ($1^\circ-1/2^\circ$) requires further research as the deformation radius is not resolved and other eddy effects might need to be captured. Additional work is needed to enhance data-driven parameterizations beyond the performance of traditional parameterizations in realistic setups such as the global ocean. Both parameterization approaches exhibit substantial departures from observations and contribute comparably to persistent model biases. This highlights the considerable potential for improving parameterization schemes, evaluation metrics, and model calibration in ocean modeling. Looking ahead, the generalization issue addressed in this study has immediate implications for climate models, where parameterizations must remain reliable under changing conditions.
+
+
+%Additional work is needed to further enhance data-driven parameterizations beyond the performance of traditional approaches in complex, realistic settings such as the global ocean, where both currently exhibit substantial departures from observations and contribute comparably to persistent model biases. % We note, however, that the model biases may be dominated by misrepresentation of multiple physical processes. 
+
+% The presented parameterization approach can be extended by learning from additional physically relevant parameters \cite{prakash2022invariant} or to parameterize eddy buoyancy fluxes \cite{gent1990isopycnal, connolly2025deep}.
+
+
+%The effect of the ANN parameterization consists of increasing the EKE and reducing the APE, with spatial patterns similar to those obtained by increasing the resolution of the ocean model. Similar results are also found in the global ocean-ice model OM4. Reduction of the APE led to flattening of the isopycnals, weakening of the ACC transport, and reduction of the globally-averaged potential temperature (restratification effect, \citeA{griffies2015impacts}). However, not all responses project onto the existing global ocean model biases. Thus, the ocean model might require calibration if the goal is to improve the metrics associated with the global ocean circulation compared to the observational data.
+
+%Our results indicate that data-driven parameterizations can be made more robust and interpretable by grounding them in physical theory. Importantly, the ANN's enhanced generalization makes it a promising candidate for use in climate models, where parameterizations must remain reliable under changing conditions. Looking ahead, integrating such physics-aware data-driven schemes into coupled Earth system models may help to achieve affordable climate projections without compromising the representation of physics. Invoking data-driven parameterizations in Earth system models might plausibly affect the model biases, however, a careful consideration of multiple physical processes is required.
+
+%The presented ANN parameterization compares well to baseline parameterizations of \citeA{chang2023remote, yankovsky2024, perezhogin2024stable} in online simulations in idealized or global ocean configurations. The significant advantage of the proposed ANN is a moderately small amount of tuning required to achieve good performance for online results, compared to previous machine-learning parameterization approaches \cite{zhang2023implementation} or other physics-based parameterizations \cite{yankovsky2024}. However, additional work is required to improve online performance at coarse eddy-permitting resolutions ($1/2^\circ$).  The proposed ANN admits eddy-viscosity \cite{smagorinsky1963general, leith1996stochastic, griffies2000biharmonic} and velocity gradient models \cite{anstey2017deformation} as special cases, and thus can be interpreted as a mixed model \cite{meneveau2000scale} with adjustable coefficients. A closed-form equation approximating the proposed ANN can possibly be obtained using equation-discovery methods \cite{zanna2020data, jakhar2023learning}. Extensions of the presented ANN may include learning from additional physically-relevant length scales \cite{prakash2022invariant}. For example, Rossby deformation radius $R_d$ provides an additional non-dimensional feature ($R_d/\Delta$, \citeA{hallberg2013using}). Additionally, the dimensional scaling can be applied to parameterize mesoscale eddy buoyancy fluxes \cite{gent1990isopycnal, connolly2025deep}.
+
+
+
+%%
+
+%  Numbered lines in equations:
+%  To add line numbers to lines in equations,
+%  \begin{linenomath*}
+%  \begin{equation}
+%  \end{equation}
+%  \end{linenomath*}
+
+
+
+%% Enter Figures and Tables near as possible to where they are first mentioned:
+%
+% DO NOT USE \psfrag or \subfigure commands.
+%
+% Figure captions go below the figure.
+% Acronyms used in figure captions will be spelled out in the final, published version.
+
+% Table titles go above tables;  other caption information
+%  should be placed in last line of the table, using
+% \multicolumn2l{$^a$ This is a table note.}
+% NOTE that there is no difference between table caption and table heading in the final, published version
+%
+%----------------
+% EXAMPLE FIGURES
+%
+% \begin{figure}
+% \includegraphics{example.png}
+% \caption{caption}
+% \end{figure}
+%
+% Giving latex a width will help it to scale the figure properly. A simple trick is to use \textwidth. Try this if large figures run off the side of the page.
+% \begin{figure}
+% \noindent\includegraphics[width=\textwidth]{anothersample.png}
+%\caption{caption}
+%\label{pngfiguresample}
+%\end{figure}
+%
+%
+% If you get an error about an unknown bounding box, try specifying the width and height of the figure with the natwidth and natheight options. This is common when trying to add a PDF figure without pdflatex.
+% \begin{figure}
+% \noindent\includegraphics[natwidth=800px,natheight=600px]{samplefigure.pdf}
+%\caption{caption}
+%\label{pdffiguresample}
+%\end{figure}
+%
+%
+% PDFLatex does not seem to be able to process EPS figures. You may want to try the epstopdf package.
+%
+
+%
+% ---------------
+% EXAMPLE TABLE
+%
+% \begin{table}
+% \caption{Time of the Transition Between Phase 1 and Phase 2$^{a}$}
+% \centering
+% \begin{tabular}{l c}
+% \hline
+%  Run  & Time (min)  \\
+% \hline
+%   $l1$  & 260   \\
+%   $l2$  & 300   \\
+%   $l3$  & 340   \\
+%   $h1$  & 270   \\
+%   $h2$  & 250   \\
+%   $h3$  & 380   \\
+%   $r1$  & 370   \\
+%   $r2$  & 390   \\
+% \hline
+% \multicolumn{2}{l}{$^{a}$Footnote text here.}
+% \end{tabular}
+% \end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SIDEWAYS FIGURES and TABLES
+% AGU prefers the use of {sidewaystable} over {landscapetable} as it causes fewer problems.
+%
+% \begin{sidewaysfigure}
+% \includegraphics[width=20pc]{figsamp}
+% \caption{caption here}
+% \label{newfig}
+% \end{sidewaysfigure}
+%
+%  \begin{sidewaystable}
+%  \caption{Caption here}
+% \label{tab:signif_gap_clos}
+%  \begin{tabular}{ccc}
+% one&two&three\\
+% four&five&six
+%  \end{tabular}
+%  \end{sidewaystable}
+
+%% If using numbered lines, please surround equations with \begin{linenomath*}...\end{linenomath*}
+%\begin{linenomath*}
+%\begin{equation}
+%y|{f} \sim g(m, \sigma),
+%\end{equation}
+%\end{linenomath*}
+
+%%% End of body of article
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Optional Appendices go here
+%
+% The \appendix command resets counters and redefines section heads
+%
+% After typing \appendix
+%
+%\section{Here Is Appendix Title}
+% will show
+% A: Here Is Appendix Title
+%
+
+
+%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Optional Glossary, Notation or Acronym section goes here:
+%
+% Glossary is only allowed in Reviews of Geophysics
+%  \begin{glossary}
+%  \term{Term}
+%   Term Definition here
+%  \term{Term}
+%   Term Definition here
+%  \term{Term}
+%   Term Definition here
+%  \end{glossary}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Acronyms
+%% NOTE that acronyms in the final published version will be spelled out when used in figure captions.
+%   \begin{acronyms}
+%   \acro{Acronym}
+%   Definition here
+%   \acro{EMOS}
+%   Ensemble model output statistics
+%   \acro{ECMWF}
+%   Centre for Medium-Range Weather Forecasts
+%   \end{acronyms}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Notation
+%   \begin{notation}
+%   \notation{$a+b$} Notation Definition here
+%   \notation{$e=mc^2$}
+%   Equation in German-born physicist Albert Einstein's theory of special
+%  relativity that showed that the increased relativistic mass ($m$) of a
+%  body comes from the energy of motion of the body—that is, its kinetic
+%  energy ($E$)—divided by the speed of light squared ($c^2$).
+%   \end{notation}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% DATA SECTION and ACKNOWLEDGMENTS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%TC:ignore 
+\section*{Open Research Section}
+The training algorithm, plots, ANN weights, implemented parameterization and MOM6 setups are available at \url{https://github.com/m2lines/ANN-momentum-mesoscale} (archived at \url{https://doi.org/10.5281/zenodo.15361840}). The training dataset, offline skill, and simulation data are available at \url{https://doi.org/10.5281/zenodo.15361379}. For high-resolution NW2 simulation data, see \url{https://doi.org/10.26024/f130-ev71}. Observational products can be found: WOA18 (\url{https://www.ncei.noaa.gov/data/oceans/woa/WOA18}) and RAPID (\url{https://rapid.ac.uk/data/data-download}).
+
+% This section MUST contain a statement that describes where the data supporting the conclusions can be obtained. Data cannot be listed as ''Available from authors'' or stored solely in supporting information. Citations to archived data should be included in your reference list. Wiley will publish it as a separate section on the paper’s page. Examples and complete information are here:
+% https://www.agu.org/Publish with AGU/Publish/Author Resources/Data for Authors
+
+% \section*{As Applicable – Inclusion in Global Research Statement}
+% The Authorship: Inclusion in Global Research policy aims to promote greater equity and transparency in research collaborations. AGU Publications encourage research collaborations between regions, countries, and communities and expect authors to include their local collaborators as co-authors when they meet the AGU Publications authorship criteria (described here: https://www.agu.org/publications/authors/policies\#authorship). Those who do not meet the criteria should be included in the Acknowledgement section. We encourage researchers to consider recommendations from The TRUST CODE - A Global Code of Conduct for Equitable Research Partnerships (https://www.globalcodeofconduct.org/) when conducting and reporting their research, as applicable, and encourage authors to include a disclosure statement pertaining to the ethical and scientific considerations of their research collaborations in an “Inclusion in Global Research Statement’ as a standalone section in the manuscript following the Conclusions section. This can include disclosure of permits, authorizations, permissions and/or any formal agreements with local communities or other authorities, additional acknowledgements of local help received, and/or description of end-users of the research. You can learn more about the policy in this editorial. Example statements can be found in the following published papers: 
+% Holt et al. (https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2022JG007188), 
+% Sánchez-Gutiérrez et al. (https://agupubs.onlinelibrary.wiley.com/doi/abs/10.1029/2023JG007554), 
+% Tully et al. (https://agupubs.onlinelibrary.wiley.com/doi/epdf/10.1029/2022JG007128) 
+% Please note that these statements are titled as “Global Research Collaboration Statements” from a previous pilot requirement in JGR Biogeosciences. The pilot has ended and statements should now be titled “Inclusion in Global Research Statement”.
+
+
+
+\acknowledgments
+%Enter acknowledgments here. This section is to acknowledge funding, thank colleagues, enter any secondary affiliations, and so on.
+This project is supported by Schmidt Sciences, LLC. This research was also supported in part through the NYU IT High Performance
+Computing resources, services, and staff expertise. This research used resources of the National Energy Research Scientific Computing Center, a DOE Office of Science User Facility supported by the Office of Science of the U.S. Department of Energy under Contract No. DE-AC02-05CH11231 using NERSC award BER-ERCAP0032655. The authors would like to thank the M$^2$LInES team, in particular, Dhruv Balwada, Alex Connolly and Nora Loose, and also Wenda Zhang and Aviral Prakash for helpful comments and discussion. %This research used resources of the National Energy Research Scientific Computing Center, which is supported by the Office of Science of the U.S. Department of Energy under Contract No. DE-AC02-05CH11231.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% REFERENCES and BIBLIOGRAPHY
+%
+% \bibliography{<name of your .bib file>} don't specify the file extension
+% don't specify bibliographystyle
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\bibliography{ enter your bibtex bibliography filename here }
+
+\bibliography{agusample}
+
+%TC:endignore 
+
+
+
+%Reference citation instructions and examples:
+%
+% Please use ONLY \cite and \citeA for reference citations.
+% \cite for parenthetical references
+% ...as shown in recent studies (Simpson et al., 2019)
+% \citeA for in-text citations
+% ...Simpson et al. (2019) have shown...
+%
+%
+%...as shown by \citeA{jskilby}.
+%...as shown by \citeA{lewin76}, \citeA{carson86}, \citeA{bartoldy02}, and \citeA{rinaldi03}.
+%...has been shown \cite{jskilbye}.
+%...has been shown \cite{lewin76,carson86,bartoldy02,rinaldi03}.
+%... \cite <i.e.>[]{lewin76,carson86,bartoldy02,rinaldi03}.
+%...has been shown by \cite <e.g.,>[and others]{lewin76}.
+%
+% apacite uses < > for prenotes and [ ] for postnotes
+% DO NOT use other cite commands (e.g., \citet, \citep, \citeyear, \nocite, \citealp, etc.).
+%
+
+
+
+\end{document}
+
+
+
+More Information and Advice:
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  SECTION HEADS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Capitalize the first letter of each word (except for
+% prepositions, conjunctions, and articles that are
+% three or fewer letters).
+
+% AGU follows standard outline style; therefore, there cannot be a section 1 without
+% a section 2, or a section 2.3.1 without a section 2.3.2.
+% Please make sure your section numbers are balanced.
+% ---------------
+% Level 1 head
+%
+% Use the \section{} command to identify level 1 heads;
+% type the appropriate head wording between the curly
+% brackets, as shown below.
+%
+%An example:
+%\section{Level 1 Head: Introduction}
+%
+% ---------------
+% Level 2 head
+%
+% Use the \subsection{} command to identify level 2 heads.
+%An example:
+%\subsection{Level 2 Head}
+%
+% ---------------
+% Level 3 head
+%
+% Use the \subsubsection{} command to identify level 3 heads
+%An example:
+%\subsubsection{Level 3 Head}
+%
+%---------------
+% Level 4 head
+%
+% Use the \subsubsubsection{} command to identify level 3 heads
+% An example:
+%\subsubsubsection{Level 4 Head} An example.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  IN-TEXT LISTS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Do not use bulleted lists; enumerated lists are okay.
+% \begin{enumerate}
+% \item
+% \item
+% \item
+% \end{enumerate}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  EQUATIONS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Single-line equations are centered.
+% Equation arrays will appear left-aligned.
+
+Math coded inside display math mode \[ ...\]
+ will not be numbered, e.g.,:
+ \[ x^2=y^2 + z^2\]
+
+ Math coded inside \begin{equation} and \end{equation} will
+ be automatically numbered, e.g.,:
+ \begin{equation}
+ x^2=y^2 + z^2
+ \end{equation}
+
+
+% To create multiline equations, use the
+% \begin{eqnarray} and \end{eqnarray} environment
+% as demonstrated below.
+\begin{eqnarray}
+  x_{1} & = & (x - x_{0}) \cos \Theta \nonumber \\
+        && + (y - y_{0}) \sin \Theta  \nonumber \\
+  y_{1} & = & -(x - x_{0}) \sin \Theta \nonumber \\
+        && + (y - y_{0}) \cos \Theta.
+\end{eqnarray}
+
+%If you don't want an equation number, use the star form:
+%\begin{eqnarray*}...\end{eqnarray*}
+
+% Break each line at a sign of operation
+% (+, -, etc.) if possible, with the sign of operation
+% on the new line.
+
+% Indent second and subsequent lines to align with
+% the first character following the equal sign on the
+% first line.
+
+% Use an \hspace{} command to insert horizontal space
+% into your equation if necessary. Place an appropriate
+% unit of measure between the curly braces, e.g.
+% \hspace{1in}; you may have to experiment to achieve
+% the correct amount of space.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  EQUATION NUMBERING: COUNTER
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% You may change equation numbering by resetting
+% the equation counter or by explicitly numbering
+% an equation.
+
+% To explicitly number an equation, type \eqnum{}
+% (with the desired number between the brackets)
+% after the \begin{equation} or \begin{eqnarray}
+% command.  The \eqnum{} command will affect only
+% the equation it appears with; LaTeX will number
+% any equations appearing later in the manuscript
+% according to the equation counter.
+%
+
+% If you have a multiline equation that needs only
+% one equation number, use a \nonumber command in
+% front of the double backslashes (\\) as shown in
+% the multiline equation above.
+
+% If you are using line numbers, remember to surround
+% equations with \begin{linenomath*}...\end{linenomath*}
+
+%  To add line numbers to lines in equations:
+%  \begin{linenomath*}
+%  \begin{equation}
+%  \end{equation}
+%  \end{linenomath*}
+
+
+

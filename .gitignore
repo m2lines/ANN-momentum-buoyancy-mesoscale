@@ -4,3 +4,15 @@
 .ffmpeg*
 *.out
 *.err
+
+# LaTeX build intermediates
+*.aux
+*.bbl
+*.blg
+*.log
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# OS cruft
+.DS_Store
