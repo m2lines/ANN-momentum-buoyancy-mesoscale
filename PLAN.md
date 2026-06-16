@@ -26,7 +26,7 @@ This plan is organized around those three goals, not around building new capabil
 Rough catalog — to be refined in M1:
 
 - **Python training pipeline**: buoyancy extensions of Pavel's pipeline in `src/training-on-CM2.6/`. Known issues listed below.
-- **Trained ANN artifacts**: `DB_notebooks/training_experiments/` (`ann_instance_6Nov.nc`, `logger_6Nov.nc`, `rho_flux_ann_params.nc`, training notebooks). Canonical version not yet identified.
+- **Trained ANN artifacts**: **CANONICAL MODEL IDENTIFIED (2026-06-16)** — `CM26_ML_models/ocean3d/subfilter/FGR3/buoyancy/hidden-layer-32-32/seed-default/model/ann_instance_20Dec.nc` (committed in `3df5f40`). Config: stencil 3, hidden `[32,32]`, FGR3, factors `[4,9,12,15]`, depth `arange(0,50,2)`, 500 iters, `path_save=EXP0`. This is the `ann_instance_20Dec.nc` that `offline_eval.ipynb` loads (from `scratch/.../FGR3/EXP0/model/`). The `training_experiments/*_6Nov.nc` artifacts are earlier/superseded, NOT canonical.
 - **Online MOM6 implementation**: `rho_flux_ANN_gfdl_ready` branch in MOM6 — Fortran code already "gfdl_ready". See `/home/db194/MOM6-examples/src/MOM6/src/parameterizations/lateral/MOM_meso_sfn_ANN.F90`.
 - **Analysis notebooks** in `DB_notebooks/`:
   - `NW2_analysis/` — 5 notebooks.
@@ -41,20 +41,20 @@ Rough catalog — to be refined in M1:
 Uncommitted / in-flight:
 - `src/training-on-CM2.6/scripts/train_script_rho_fluxes.py` (entry point, has bugs)
 - `src/training-on-CM2.6/scripts/slurm_train_ann.sh`
-- `predict_ANN_rho()` stub in `cm26.py` (whole-dataset inference, currently a no-op)
+- ~~`predict_ANN_rho()` stub in `cm26.py`~~ → **IMPLEMENTED (2026-06-16)**: whole-dataset ρ inference (loops `ANN_rho_inference` over time/zl → Fx/Fy + Fx_pred/Fy_pred). Added `SGS_skill_rho()` (R²F/corr_F) alongside it.
 - `README.md` updates (fork blurb + buoyancy section)
 
 Bugs:
 - `cm26.py:118` rawdata path hardcoded to `/vast/pp2681/` (Pavel's user) — portability
-- `train_script_rho_fluxes.py` references `args.gradient_features` that was commented out at parse → AttributeError in testing block
-- `train_script_rho_fluxes.py` testing block calls momentum `predict_ANN` rather than a rho predict (because the rho one is a stub)
+- ~~`train_script_rho_fluxes.py` references `args.gradient_features`~~ → **FIXED (2026-06-16)**: testing block now calls `predict_ANN_rho(ann_Tall, stencil_size=...).SGS_skill_rho()`, no `gradient_features`.
+- ~~`train_script_rho_fluxes.py` testing block calls momentum `predict_ANN`~~ → **FIXED (2026-06-16)**: now uses the real `predict_ANN_rho` + `SGS_skill_rho`.
 
 ## Milestone 1 — Inventory and audit  [open]
 
 Before we can trust any number, we need to know (a) what exists, (b) what's correct, and (c) what's canonical.
 
 - [ ] **Inventory analysis notebooks** by subdirectory: tag each as canonical / superseded / scratch
-- [ ] **Inventory trained models**: list each trained ANN, its training config, which experiments used it
+- [x] **Inventory trained models (2026-06-16)**: canonical = `ann_instance_20Dec.nc` (EXP0; stencil 3, hidden `[32,32]`, FGR3, factors `[4,9,12,15]`), committed under `CM26_ML_models/.../FGR3/buoyancy/hidden-layer-32-32/seed-default/`; used by `offline_eval.ipynb` and the online MOM6 runs. `training_experiments/*_6Nov` are superseded.
 - [ ] **Inventory online simulations**: list each MOM6 run, its config, its output location on disk
 - [~] **Code review — training pipeline** (`add_subfilter_forcing_rho`, `ANN_rho_inference`, `train_rho_fluxes.py`): check math, compare against Pavel's momentum equivalents
   - [x] **Train↔online "implicit contract" verified (2026-06-16)**: input features (5 channels `rhox, rhoy, sh_xx, sh_xy, rel_vort`, same order), gradient sign conventions (`sh_xx=dudx-dvdy`, `sh_xy=dvdx+dudy`, `vort=dvdx-dudy`), Frobenius-norm normalization, and dimensional prefactor (`rho_norm·gradv_norm·Δ²`) all MATCH between `ANN_rho_inference` (`state_functions.py:1574`) and `meso_sfn_ANN_compute`. Both intentionally drop horizontal divergence.
@@ -69,8 +69,17 @@ Before we can trust any number, we need to know (a) what exists, (b) what's corr
 - [x] **NEW audit item — density-gradient "kind" consistency → CONFIRMED INCONSISTENCY (2026-06-16)**: training builds `rhox/rhoy` from **surface-referenced potential density σ₀** (`rho()`=`gsw.sigma0`, ref p=0; gradient at constant model level — `state_functions.py:1776,1948`). Online, `calc_isoneutral_slopes` evaluates density derivs **at the local interface pressure** (`pres_u`, `MOM_isopycnal_slopes.F90:312,336`) → ∇ρ in the neutral/locally-referenced framework. These agree near surface but **diverge with depth** (thermobaricity), in both magnitude and direction; training spans full column (`depth_idx=arange(0,50,2)`), so a real distributional shift that `C_ANN` (a scalar) cannot correct. **Likely contributor to imperfect online skill.**
   - Resolution options: (1) retrain on locally-referenced density gradients to match `calc_isoneutral_slopes` [cleanest]; (2) add a σ₀-gradient path to the Fortran; (3) diagnose ∇σ₀ vs ∇ρ_local in CM2.6 and argue negligible [risky].
   - Secondary, unchased: training differences at constant-z (CM2.6 z-coord) vs online at constant-interface-K (z* in OM4) — not identical in general vertical coordinate.
+- [x] **Offline-skill code reuse map (deep audit 2026-06-16)** — what already exists, so we don't reinvent (Pavel built most of it; 3-agent audit, all agree there is *zero* existing R²/corr for Fx/Fy):
+  - **`M2()`** (`cm26.py:742`, nested in `SGS_skill`) — generic 2nd-moment (centering/masking/dim-reduction + `M2u`/`M2v` grid variants). Already works for any field incl. Fx/Fy. Building block for all R²/corr.
+  - **`SGS_skill()`** (`cm26.py:719-967`) — full momentum suite: R²T + corr_T (map/centered/away/lon variants, lines 789-828), SGS dissipation, transfer/power spectra (NA/Pacific/Equator/ACC), dEdt. **Momentum-only.** The R²T/corr_T block is the template for a ρ R²F/corr_F.
+  - **`predict_ANN()`** (`cm26.py:613-649`) — working whole-dataset momentum prediction (loops time/zl → xarray). Structural template for `predict_ANN_rho`.
+  - **`ANN_rho_inference()`** (`state_functions.py:1574`) — the only working ρ predictor; per-2D-slice; `return_xarray=True` gives Fx/Fy for comparison-to-truth.
+  - **`predict_ANN_rho()`** (`cm26.py:651`) — ✅ now implemented (2026-06-16), plus `SGS_skill_rho()` (R²F/corr_F).
+  - **`notebooks/Figure-1.ipynb`** (Pavel) — R²/corr heatmaps across factors×depths via `SGS_skill`; the plotting template for §3.3 ρ skill.
+  - Qualitative ρ (exists): `offline_eval.ipynb`, `training_experiments/train_ann_rho_test.ipynb` — `ANN_rho_inference` vs CM2.6 truth (maps/histograms, no R²).
+  - **Status (2026-06-16)**: (1) `predict_ANN_rho` ✅ done; (2) R²F/corr_F via `SGS_skill_rho` ✅ done; (3) remaining — adapt Figure-1 plotting for ρ + **run `train_script_rho_fluxes.py`'s testing block (or a notebook) on CM2.6 test data to produce the actual offline R²/corr numbers** (needs `/vast` data + env; not runnable in this Claude session).
 - [ ] **Reproducibility spot-check**: rerun one training end-to-end, confirm it matches a canonical trained model
-- [ ] **Fix known bugs**: cm26.py path, `gradient_features` handling, decide on `predict_ANN_rho` stub
+- [~] **Fix known bugs**: ~~`gradient_features` handling~~ ✅, ~~`predict_ANN_rho` stub~~ ✅ (implemented + `SGS_skill_rho`); remaining: `cm26.py` hardcoded `/vast/pp2681/` rawdata path (portability).
 - [ ] **Commit queue cleanup**: land README + training script + slurm script + plan + reorg
 
 ## Milestone 2 — Cleanup and consolidation  [after M1]

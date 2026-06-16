@@ -52,7 +52,8 @@ cross-configuration validation (NW2, OM4, Double-Gyre).
   - Key outputs: inline only.
   - Related: `training_experiments/train_ann_rho_test.ipynb` (upstream trainer),
     `config_checks/check_trained_logger.ipynb` (training curves).
-  - Concerns: no markdown; need to confirm which ANN instance is "final".
+  - Concerns: no markdown.
+  - **RESOLVED (2026-06-16)**: `ann_instance_20Dec.nc` (EXP0) is the **canonical** model — now committed in-repo at `CM26_ML_models/.../FGR3/buoyancy/hidden-layer-32-32/seed-default/`. Config: stencil 3, hidden `[32,32]`, FGR3, factors `[4,9,12,15]`. This notebook is `canonical` (not just candidate).
 
 - **`11-Dhruv-Nov-runs.ipynb`** (Jan 6, 6 MB)
   - Purpose: coarse comparison of OM4 runs (Pavel Perezhogin's
@@ -173,9 +174,10 @@ R3=third-degree, R4=quarter-degree).
    iterations on the same "magnitude of eddy forcing terms" figure. Which is
    the one you'd ship? (I've tagged `PE_impacts` as `unclear` and
    `relative_mags_forcing` as `canonical`.)
-2. **`offline_eval.ipynb`** — this loads `ann_instance_20Dec.nc`
-   (FGR3/EXP0). Is that the ANN used in the OM4/channel/NW2 deployment runs,
-   i.e. the "final" model for the paper?
+2. ~~**`offline_eval.ipynb`** — which ANN instance is final?~~ **ANSWERED (2026-06-16)**:
+   `ann_instance_20Dec.nc` (EXP0) is canonical, now committed at
+   `CM26_ML_models/.../FGR3/buoyancy/hidden-layer-32-32/seed-default/`. (Still to
+   confirm separately whether the *same* weights drive the OM4/NW2 online runs.)
 3. **`11-Dhruv-Nov-runs.ipynb`** — I tagged this `scratch` under the
    assumption `check_OM4.ipynb` (Apr 20) supersedes it. Confirm?
 4. **`Figure-S3-and-Tables-S2-S3_DB.ipynb`** — does this regenerate figures

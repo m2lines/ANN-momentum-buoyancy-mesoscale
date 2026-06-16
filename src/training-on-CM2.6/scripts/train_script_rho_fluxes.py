@@ -72,9 +72,8 @@ if __name__ == '__main__':
     ds = read_datasets(['test'], [4,9,12,15], subfilter=args.subfilter, FGR=args.FGR)
     os.system(f'mkdir -p {path_save}/skill-test')
     for factor in [4,9,12,15]:
-        skill = ds[f'test-{factor}'].predict_ANN(None, None, ann_Tall,
-                                                 stencil_size=args.stencil_size,
-                                                 gradient_features=args.gradient_features).SGS_skill()
+        skill = ds[f'test-{factor}'].predict_ANN_rho(ann_Tall,
+                                                     stencil_size=args.stencil_size).SGS_skill_rho()
         skill.to_netcdf(f'{path_save}/skill-test/factor-{factor}.nc')
         del skill
         gc.collect()

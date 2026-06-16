@@ -648,46 +648,86 @@ class DatasetCM26():
         gc.collect()
         return DatasetCM26(data, self.param)
     
-    def predict_ANN_rho(self, ann_Txy, ann_Txx_Tyy, ann_Tall, **kw):
+    def predict_ANN_rho(self, ann, **kw):
         '''
-        This function makes ANN rho inference on the whole dataset
+        Makes rho-flux ANN inference on the whole dataset by looping over
+        time and depth (ANN_rho_inference works on a single 2D slice).
+        Returns a dataset with the true (Fx, Fy) and predicted (Fx_pred, Fy_pred)
+        sub-grid density fluxes, ready for SGS_skill_rho.
         '''
-        print('THIS FUNCTION NOT IMPLEMENTED YET!')
-        pass
-        
-
         data = xr.Dataset()
         param = self.param
-        for key in ['SGSx', 'SGSy', 'u', 'v', 'Fx', 'Fy', 'sh_xx', 'sh_xy_h', 'div']:
-            try:
-                data[key] = self.nanvar(self.data[key]).copy(deep=True).compute()
-            except:
-                pass
-        
-        data['ZB20u'] = xr.zeros_like(data.SGSx)
-        data['ZB20v'] = xr.zeros_like(data.SGSy)
-        try:
-            data['Txx_pred'] = xr.zeros_like(data.Txx)
-            data['Tyy_pred'] = xr.zeros_like(data.Tyy)
-            data['Txy_pred'] = xr.zeros_like(data.Txy)
-        except:
-            pass
+        for key in ['Fx', 'Fy']:
+            data[key] = self.nanvar(self.data[key]).copy(deep=True).compute()
+
+        data['Fx_pred'] = xr.zeros_like(data.Fx)
+        data['Fy_pred'] = xr.zeros_like(data.Fy)
 
         for time in range(len(self.data.time)):
             for zl in range(len(self.data.zl)):
-                batch = self.select2d(time=time,zl=zl)
-                prediction = batch.state.ANN(ann_Txy, ann_Txx_Tyy, ann_Tall, **kw)
-                data['ZB20u'][{'time':time, 'zl':zl}] = prediction['ZB20u'].where(param.wet_u[zl])
-                data['ZB20v'][{'time':time, 'zl':zl}] = prediction['ZB20v'].where(param.wet_v[zl])
-                try:
-                    data['Txx_pred'][{'time':time, 'zl':zl}] = prediction['Txx'].where(param.wet[zl])
-                    data['Tyy_pred'][{'time':time, 'zl':zl}] = prediction['Tyy'].where(param.wet[zl])
-                    data['Txy_pred'][{'time':time, 'zl':zl}] = prediction['Txy'].where(param.wet[zl])
-                except:
-                    pass
-        
+                batch = self.select2d(time=time, zl=zl)
+                prediction = batch.state.ANN_rho_inference(ann, return_xarray=True, **kw)
+                data['Fx_pred'][{'time':time, 'zl':zl}] = prediction['Fx_xarray'].where(param.wet[zl])
+                data['Fy_pred'][{'time':time, 'zl':zl}] = prediction['Fy_xarray'].where(param.wet[zl])
+
         gc.collect()
         return DatasetCM26(data, self.param)
+
+    def SGS_skill_rho(self):
+        '''
+        Skill of the rho-flux ANN: R-squared and correlation for the two
+        sub-grid density flux components (Fx, Fy). The density-flux counterpart
+        of SGS_skill, reusing the same second-moment definition. Expects
+        Fx, Fy, Fx_pred, Fy_pred (e.g. from predict_ANN_rho).
+        '''
+        def M2(x, y=None, centered=False, dims=None, exclude_dims='zl', mask=None):
+            if dims is None and exclude_dims is not None:
+                dims = [dim for dim in x.dims if dim not in exclude_dims]
+            if mask is not None:
+                x = x * mask
+                if y is not None:
+                    y = y * mask
+            if y is None:
+                y = x
+            if centered:
+                return (x*y).mean(dims) - x.mean(dims)*y.mean(dims)
+            else:
+                return (x*y).mean(dims)
+
+        # 2 grid points away from coast
+        wet2 = xr.where(propagate_mask(self.param.wet, self.grid, niter=2) < 0.5, np.nan, 1.)
+
+        Fx, Fy = self.data.Fx, self.data.Fy
+        Fx_pred, Fy_pred = self.data.Fx_pred, self.data.Fy_pred
+        errx = Fx - Fx_pred
+        erry = Fy - Fy_pred
+
+        skill = xr.Dataset()
+        skill['wet'] = xr.where(self.param.wet < 0.5, np.nan, 1.)
+        skill['wet2'] = wet2
+
+        # R-squared (the two flux components combined, as for the stress tensor)
+        skill['R2F_map'] = 1 - (M2(errx, dims='time') + M2(erry, dims='time')) / (M2(Fx, dims='time') + M2(Fy, dims='time'))
+        skill['R2F'] = 1 - (M2(errx) + M2(erry)) / (M2(Fx) + M2(Fy))
+        skill['R2F_centered'] = 1 - (M2(errx) + M2(erry)) / (M2(Fx, centered=True) + M2(Fy, centered=True))
+        skill['R2F_away'] = 1 - (M2(errx, mask=wet2) + M2(erry, mask=wet2)) / (M2(Fx, mask=wet2) + M2(Fy, mask=wet2))
+        skill['R2F_away_centered'] = 1 - (M2(errx, mask=wet2) + M2(erry, mask=wet2)) / (M2(Fx, mask=wet2, centered=True) + M2(Fy, mask=wet2, centered=True))
+
+        # Correlation
+        skill['corr_Fx'] = M2(Fx, Fx_pred, centered=True) / np.sqrt(M2(Fx, centered=True) * M2(Fx_pred, centered=True))
+        skill['corr_Fy'] = M2(Fy, Fy_pred, centered=True) / np.sqrt(M2(Fy, centered=True) * M2(Fy_pred, centered=True))
+        skill['corr_F'] = 0.5 * (skill['corr_Fx'] + skill['corr_Fy'])
+        skill['corr_F_map'] = 0.5 * (
+            M2(Fx, Fx_pred, centered=True, dims='time') / np.sqrt(M2(Fx, centered=True, dims='time') * M2(Fx_pred, centered=True, dims='time')) +
+            M2(Fy, Fy_pred, centered=True, dims='time') / np.sqrt(M2(Fy, centered=True, dims='time') * M2(Fy_pred, centered=True, dims='time')))
+
+        # Snapshots for plotting / scatter
+        skill['Fx'] = Fx.isel(time=0)
+        skill['Fy'] = Fy.isel(time=0)
+        skill['Fx_pred'] = Fx_pred.isel(time=0)
+        skill['Fy_pred'] = Fy_pred.isel(time=0)
+
+        return skill
     
     def predict_ZB(self, fun=None, **kw):
         '''
