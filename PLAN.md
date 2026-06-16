@@ -56,8 +56,19 @@ Before we can trust any number, we need to know (a) what exists, (b) what's corr
 - [ ] **Inventory analysis notebooks** by subdirectory: tag each as canonical / superseded / scratch
 - [ ] **Inventory trained models**: list each trained ANN, its training config, which experiments used it
 - [ ] **Inventory online simulations**: list each MOM6 run, its config, its output location on disk
-- [ ] **Code review — training pipeline** (`add_subfilter_forcing_rho`, `ANN_rho_inference`, `train_rho_fluxes.py`): check math, compare against Pavel's momentum equivalents
-- [ ] **Code review — MOM6 Fortran** (`MOM_meso_sfn_ANN.F90`): verify inputs/outputs, sign conventions, boundary handling, clamping
+- [~] **Code review — training pipeline** (`add_subfilter_forcing_rho`, `ANN_rho_inference`, `train_rho_fluxes.py`): check math, compare against Pavel's momentum equivalents
+  - [x] **Train↔online "implicit contract" verified (2026-06-16)**: input features (5 channels `rhox, rhoy, sh_xx, sh_xy, rel_vort`, same order), gradient sign conventions (`sh_xx=dudx-dvdy`, `sh_xy=dvdx+dudy`, `vort=dvdx-dudy`), Frobenius-norm normalization, and dimensional prefactor (`rho_norm·gradv_norm·Δ²`) all MATCH between `ANN_rho_inference` (`state_functions.py:1574`) and `meso_sfn_ANN_compute`. Both intentionally drop horizontal divergence.
+  - [x] **Flux sign verified**: training target `Fx = ρ̄ū − ρu‾ = −u'ρ'‾` (`cm26.py:585`); Fortran comment "ANN outputs −u'rho', so we negate" (`F90:285`) correctly reconstructs `+u'ρ'‾`. Consistent, no sign bug.
+  - [x] Residual closed (2026-06-16): `compute_features` builds `sh_xy_h = interp(dvdx+dudy)`, `rel_vort_h = interp(dvdx-dudy)` — signs match the Fortran inputs.
+  - [x] **Full math/sign audit (2026-06-16)**: `add_subfilter_forcing_rho` computes `F = ρ̄ū - ρu‾ = -u'ρ'`, mirroring Pavel's momentum `T = ū·ū - uu‾` (it was lifted from the commented-out Fx/Fy in `compute_subfilter_forcing`). Offline internally consistent: both the flux target and the `rhox/rhoy` inputs (`vertical_shear_geostrophic`) derive from `state.rho()` = potential density σ0. Per-slice `F_norm` is only a loss weighting, not baked into the exported model. **No core-math bugs.**
+  - [x] **BUG FIXED (2026-06-16) — Polar-Fold rows leak into ρ training**: added `drop_polar_fold()` in `train_rho_fluxes.py` (drops top 2 `yh`+`yq` rows, reconstructs `DatasetCM26` so data/param/state stay aligned), applied at both train and validate `select2d` calls. Mirrors `fetch_data`'s `isel(yh=slice(None,-2))`. Syntax-checked; not yet run end-to-end (needs data/env).
+  - [x] Minor doc fix (2026-06-16): corrected `vertical_shear_geostrophic` docstring — `self.data.rho` is potential σ0, not in-situ.
+- [~] **Code review — MOM6 Fortran** (`MOM_meso_sfn_ANN.F90`): verify inputs/outputs, sign conventions, boundary handling, clamping
+  - [x] inputs/outputs + sign conventions cross-checked vs training (see above).
+  - [ ] still to audit: boundary handling (`min_dist_from_boundary`, ψ=0 at surface/bottom via interior-only fill), clamping (`flux_clamp`, `Upsilon_clamp`, `mag_grad_floor`), Ferrari-2010 streamfunction `Υ = F_h/|∇₃ρ|`.
+- [x] **NEW audit item — density-gradient "kind" consistency → CONFIRMED INCONSISTENCY (2026-06-16)**: training builds `rhox/rhoy` from **surface-referenced potential density σ₀** (`rho()`=`gsw.sigma0`, ref p=0; gradient at constant model level — `state_functions.py:1776,1948`). Online, `calc_isoneutral_slopes` evaluates density derivs **at the local interface pressure** (`pres_u`, `MOM_isopycnal_slopes.F90:312,336`) → ∇ρ in the neutral/locally-referenced framework. These agree near surface but **diverge with depth** (thermobaricity), in both magnitude and direction; training spans full column (`depth_idx=arange(0,50,2)`), so a real distributional shift that `C_ANN` (a scalar) cannot correct. **Likely contributor to imperfect online skill.**
+  - Resolution options: (1) retrain on locally-referenced density gradients to match `calc_isoneutral_slopes` [cleanest]; (2) add a σ₀-gradient path to the Fortran; (3) diagnose ∇σ₀ vs ∇ρ_local in CM2.6 and argue negligible [risky].
+  - Secondary, unchased: training differences at constant-z (CM2.6 z-coord) vs online at constant-interface-K (z* in OM4) — not identical in general vertical coordinate.
 - [ ] **Reproducibility spot-check**: rerun one training end-to-end, confirm it matches a canonical trained model
 - [ ] **Fix known bugs**: cm26.py path, `gradient_features` handling, decide on `predict_ANN_rho` stub
 - [ ] **Commit queue cleanup**: land README + training script + slurm script + plan + reorg
@@ -74,7 +85,11 @@ Using the M1 inventory, reduce the analysis sprawl to a canonical story.
 
 ## Milestone 3 — Write the paper  [after M2]
 
-- [ ] Outline Part 2 section structure (likely parallel to Part 1 §3–§5)
+**Paper draft lives in a separate repo**: `github.com/dhruvbalwada/mesoscale_b_ml_parameterization` (Overleaf GitHub Sync, branch `main`). Title: "...mesoscale eddy-induced transport: A hierarchy of configurations". Inline review via `\note[CC]`/`\note[DB]` trackchanges notes.
+
+- [~] Outline Part 2 section structure — current skeleton: §1 Intro, §2 Sub-grid buoyancy fluxes (drafted/reconciled 2026-06-16), §3 ML model design+training+implementation (3.1 design, 3.2 training/CM2.6, 3.3 offline skill, 3.4 implementation-in-MOM6), §4 Evaluation (channel baseline → NW2 → OM4), §5 Discussion, App A Double-Gyre (bridge to Part 1).
+  - [x] §2 reconciled: de-dup decomposition, bridge to ML target + Part-1 limit, `b=-gρ/ρ0` defined, notation → superscript `F^b`.
+  - [ ] **TODO appendix** `app:flux_decomposition`: honest "what the skew-only closure discards" (diapycnal residual, rotational-flux gauge freedom, QG-limit). Referenced from §2 but unwritten.
 - [ ] Draft figures list and map each to the canonical notebook producing it
 - [ ] Draft sections iteratively, in priority order:
   - Introduction (lighter; Part 1 has the big-picture framing)
@@ -88,9 +103,10 @@ Using the M1 inventory, reduce the analysis sprawl to a canonical story.
 ## Open questions
 
 - **Architecture**: Does the 2-layer ANN architecture (stencil size, feature set, hidden layers) transfer directly to 3D, or does 3D need different features?
+  - **Known simplification (confirmed 2026-06-16)**: the ρ-flux ANN **drops Part 1's flow-aligned coordinate rotation and symmetry augmentation** — inputs are fed in the model grid frame (no rotation; `--symmetries` commented out in the trainer; `ANN_rho_inference` has no rotation args, unlike the momentum `ANN_inference`). Was a move-fast simplification, not principled. **Decision before submission**: (a) keep + frame as explicit simplification/future-work, or (b) retrain in flow-aligned frame with symmetry augmentation to match Part 1. Offline CM2.6 skill should inform the call (Part 1 argued non-dim + non-locality, both kept, were the most important generalization features).
 - **Canonical online experiment**: which channel-sweep variant is the headline result? (lives in sibling repo `ANN-channel-forcing-sensitivity/` — see its INVENTORY.md)
-- **Online scope (this repo)**: NW2 3D / OM4 / double-gyre 3D — what's in scope for cross-config validation in Part 2?
-- **Scope**: Joint momentum+buoyancy training vs. buoyancy-only for Part 2?
+- ~~**Online scope (this repo)**~~ → **RESOLVED (2026-06-16)**: config hierarchy = channel baseline → NW2 → OM4 (main §4); Double-Gyre in appendix to bridge to Part 1. Channel *sensitivity sweep* stays in sibling repo; only a baseline channel run appears here.
+- ~~**Scope**: joint vs buoyancy-only~~ → **RESOLVED (2026-06-16)**: buoyancy-only. Variable convention: hybrid (`b` in theory, `ρ` in implementation, bridged by `b=-gρ/ρ0`).
 - **Author list**: Lock in co-authors and expected contributions.
 
 ## Log
@@ -98,3 +114,5 @@ Using the M1 inventory, reduce the analysis sprawl to a canonical story.
 - **2026-04-21**: repo reorganized (DB_notebooks/ subdirs, README updated); initial plan created. Confirmed scope as Part 2 extension of Balwada et al. 2026.
 - **2026-04-21**: reframed plan — project stance is audit / cleanup / write, not build-from-scratch. Replaced "train end-to-end" milestones with inventory + consolidation + paper-writing structure.
 - **2026-05-18**: split off `DB_notebooks/channel_model_analysis/` into sibling repo `ANN-channel-forcing-sensitivity/`. This repo now covers training + offline eval + cross-configuration validation; the channel wind-stress sweep is its own project.
+- **2026-06-16**: verified the train↔online "implicit contract" for the ρ-flux pipeline — input features, gradient sign conventions, normalization, dimensional prefactor, and flux sign all match between `ANN_rho_inference` and `MOM_meso_sfn_ANN.F90`. No wiring/sign bugs on the two points that would have invalidated online results. Surfaced one deeper open item: potential-density (offline) vs isoneutral-slope (online) density-gradient consistency. Began Part 2 paper planning: scope = buoyancy-only; online reality not yet settled (expect pros+cons) → paper will be method-forward with offline CM2.6 skill load-bearing and online NW2/OM4 framed as first realistic tests.
+- **2026-06-16**: started writing in the paper repo `dhruvbalwada/mesoscale_b_ml_parameterization` (Overleaf-synced). Reconciled §2 (Dhruv had a fuller draft than expected — skew/streamfunction decomposition already present); de-duplicated, added ML-target + Part-1-limit bridge, defined `b=-gρ/ρ0`, standardized notation to `F^b`. Locked decisions: buoyancy-only; hybrid `b`/`ρ`; config hierarchy channel→NW2→OM4 + DG appendix. Drafting follows Dhruv's Part 1 voice. Pushed to paper repo `main`. Open inline `\note[CC]` threads await Dhruv's reply.

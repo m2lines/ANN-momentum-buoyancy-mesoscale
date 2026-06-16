@@ -1932,7 +1932,8 @@ class StateFunctions():
         '''
         Compute vertical shear for the geostrophically
         balanced motion only assuming thermal wind balance.
-        The default algorithm uses in-situ density.
+        rho is taken from self.data.rho, which in this pipeline
+        is the potential density (sigma0).
         du/dz = - g/(rho0 * f) * drho/dy
         dv/dz = + g/(rho0 * f) * drho/dx
         '''

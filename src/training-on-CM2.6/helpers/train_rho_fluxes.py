@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 import xarray as xr
-from helpers.cm26 import read_datasets
+from helpers.cm26 import read_datasets, DatasetCM26
 from helpers.ann_tools import ANN, tensor_from_xarray
 import torch
 import torch.optim as optim
@@ -19,6 +19,12 @@ def get_rho_fluxes(batch):
     Fy = Fy * F_norm
 
     return Fx, Fy, F_norm
+
+def drop_polar_fold(batch):
+    # Drop the two northernmost rows near the Polar Fold, where fluxes and
+    # B.C. are not well defined (cf. fetch_data in train_ann_fluxes).
+    return DatasetCM26(batch.data.isel(yh=slice(None, -2)),
+                       batch.param.isel(yh=slice(None, -2), yq=slice(None, -2)))
 
 def train_ANN_rho_fluxes(factors=[9],
               stencil_size = 3,
@@ -83,7 +89,7 @@ def train_ANN_rho_fluxes(factors=[9],
             # for every combination of factor and depth
             # So, consequetive snapshots are not correlated (on average)
             # Batch is a dataset consisting of one 2D slice of data
-            batch = dataset[f'train-{factor}'].select2d(zl=depth)
+            batch = drop_polar_fold(dataset[f'train-{factor}'].select2d(zl=depth))
 
             ############## Training step ###############
             Fx, Fy, F_norm = get_rho_fluxes(batch)
@@ -100,7 +106,7 @@ def train_ANN_rho_fluxes(factors=[9],
             del batch
 
             ############ Validation step ##################
-            batch = dataset[f'validate-{factor}'].select2d(zl=depth)
+            batch = drop_polar_fold(dataset[f'validate-{factor}'].select2d(zl=depth))
             
             Fx, Fy, F_norm = get_rho_fluxes(batch)
 
