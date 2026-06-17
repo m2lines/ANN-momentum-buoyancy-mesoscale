@@ -722,10 +722,10 @@ class DatasetCM26():
             M2(Fx, Fx_pred, centered=True, dims='time') / np.sqrt(M2(Fx, centered=True, dims='time') * M2(Fx_pred, centered=True, dims='time')) +
             M2(Fy, Fy_pred, centered=True, dims='time') / np.sqrt(M2(Fy, centered=True, dims='time') * M2(Fy_pred, centered=True, dims='time')))
 
-        # Decompose the horizontal flux into along- and across-gradient components
-        # (direction from the horizontal density gradient rhox, rhoy). The along-gradient
-        # (down/up-gradient) part is what GM represents; the across-gradient (rotational)
-        # part is what GM cannot capture.
+        # Decompose the horizontal flux into components along (parallel to) and across
+        # (perpendicular to) the local horizontal density gradient (rhox, rhoy).
+        # A downgradient-diffusive flux (-k grad rho) is purely along-gradient.
+        # (Physical interpretation of the across component is TBD -- not asserting "rotational".)
         gmag = np.sqrt(self.data.rhox**2 + self.data.rhoy**2) + 1e-30
         nx, ny = self.data.rhox / gmag, self.data.rhoy / gmag
         Fa,   Fr   = Fx*nx + Fy*ny,           Fy*nx - Fx*ny            # along, across (truth)
