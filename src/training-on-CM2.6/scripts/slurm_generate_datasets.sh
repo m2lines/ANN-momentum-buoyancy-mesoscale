@@ -17,7 +17,9 @@
 ###   sbatch --export=ALL,FACTOR=4,MODE=full --job-name=gen_full_4  slurm_generate_datasets.sh   # train+validate+test
 FACTOR=${FACTOR:-9}
 MODE=${MODE:-test}
-if [ "$MODE" = "test" ]; then DSARG="--datasets test"; else DSARG=""; fi
+if [ "$MODE" = "test" ]; then DSARG="--datasets test";
+elif [ "$MODE" = "trainval" ]; then DSARG="--datasets train validate";
+else DSARG=""; fi   # full = train validate test (the generate default)
 
 cd /home/db194/ANN-momentum-buoyancy-mesoscale/src/training-on-CM2.6/scripts
 
