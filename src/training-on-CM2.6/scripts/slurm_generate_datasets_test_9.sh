@@ -21,7 +21,7 @@
 cd /home/db194/ANN-momentum-buoyancy-mesoscale/src/training-on-CM2.6/scripts
 
 singularity exec --overlay /scratch/$USER/Pavel_container.ext3:ro \
-    /scratch/work/public/singularity/cuda11.8.86-cudnn8.7-devel-ubuntu22.04.2.sif \
+    /share/apps/images/cuda12.3.2-cudnn9.0.0-ubuntu-22.04.4.sif \
     /bin/bash -c "export CM26_RAWDATA=/scratch/pp2681/CM26_datasets/ocean3d/rawdata; \
                   source /ext3/env.sh; \
                   time python -u generate_3d_datasets.py --factor=9 --datasets test"
