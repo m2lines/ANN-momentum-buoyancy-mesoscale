@@ -10,8 +10,10 @@
 #SBATCH --error=skill_rho_%x_%j.err
 
 ### Offline skill (R2F/corr_F) of the canonical rho-flux ANN on regenerated test data.
-### Usage: sbatch --export=ALL,FACTORS="[9]" --job-name=skill_rho_9 slurm_skill_rho.sh
-FACTORS=${FACTORS:-[9]}
+### Factors passed as a positional arg (NOT --export: commas in "[4,9,12,15]" collide
+### with --export's comma separator).
+### Usage: sbatch --job-name=skill_rho_all slurm_skill_rho.sh "[4,9,12,15]"
+FACTORS="${1:-[9]}"
 
 cd /home/db194/ANN-momentum-buoyancy-mesoscale/src/training-on-CM2.6/scripts
 
