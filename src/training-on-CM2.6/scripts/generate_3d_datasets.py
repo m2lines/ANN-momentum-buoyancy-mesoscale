@@ -26,7 +26,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
 
-    base_path = os.path.expandvars('/vast/$USER/CM26_datasets/ocean3d')
+    base_path = os.path.expandvars(os.environ.get('CM26_DATA_ROOT', '/scratch/$USER/CM26_datasets/ocean3d'))
     folder = os.path.join(base_path, args.subfilter, f'FGR{args.FGR}/factor-{args.factor}')
     os.system(f'mkdir -p {folder}')
     with open(f'{folder}/filter.txt', "w") as outfile: 
@@ -48,13 +48,15 @@ if __name__ == '__main__':
                         percentile=args.percentile,
                         add_rho_fluxes=bool(args.add_rho_fluxes))
         
-        if ds_str == 'train':
-            depth_selector(coarse_dataset.param).to_netcdf(os.path.join(folder,'param.nc'))
-        
+        # param/permanent_features are factor-constants (same for any split);
+        # write them on whichever split runs first so single-split runs are self-sufficient.
+        if not os.path.exists(os.path.join(folder, 'param.nc')):
+            depth_selector(coarse_dataset.param).to_netcdf(os.path.join(folder, 'param.nc'))
+
         data, data_constant = coarse_dataset.state.prepare_features()
         data = depth_selector(data)
 
-        if ds_str == 'train':
+        if not os.path.exists(os.path.join(folder, 'permanent_features.nc')):
             depth_selector(data_constant).to_netcdf(os.path.join(folder, 'permanent_features.nc'))
 
         t_s = time()

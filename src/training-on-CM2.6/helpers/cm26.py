@@ -13,7 +13,8 @@ def read_datasets(keys=['train', 'test', 'validate'], factors=[4, 9, 12, 15], su
     dictionary = {}
     #depth_selector = lambda x: x.isel(zl=np.arange(0,50,5)) if len(x.zl)==50 else x
     for factor in factors:
-        base_path = os.path.expandvars(f'/vast/$USER/CM26_datasets/ocean3d/{subfilter}/FGR{FGR}/factor-{factor}')
+        root = os.path.expandvars(os.environ.get('CM26_DATA_ROOT', '/scratch/$USER/CM26_datasets/ocean3d'))
+        base_path = f'{root}/{subfilter}/FGR{FGR}/factor-{factor}'
         param = (xr.open_dataset(f'{base_path}/param.nc'))
 
         for key in keys:
@@ -115,7 +116,7 @@ class DatasetCM26():
             param_init = xr.open_dataset('gs://cmip6/GFDL_CM2_6/grid', engine='zarr').rename(
                 {'st_ocean': 'zl', 'st_edges_ocean': 'zi'}).reset_coords()
         elif '3d-' in source:
-            base_path = os.path.expandvars('/vast/pp2681/CM26_datasets/ocean3d/rawdata')
+            base_path = os.path.expandvars(os.environ.get('CM26_RAWDATA', '/scratch/$USER/CM26_datasets/ocean3d/rawdata'))
             param = xr.open_dataset(f'{base_path}/param.nc')
             if source == '3d-train':
                 file_list = [f'{base_path}/train-{j}.nc' for j in range(96)]

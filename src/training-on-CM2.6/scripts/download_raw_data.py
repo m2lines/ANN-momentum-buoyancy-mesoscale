@@ -8,7 +8,7 @@ from helpers.cm26 import DatasetCM26
 
 # Read data in cloud
 ds = DatasetCM26(source='cmip6-3d')
-PATH = os.path.expandvars('/vast/$USER/CM26_datasets/ocean3d/rawdata')
+PATH = os.path.expandvars(os.environ.get('CM26_RAWDATA', '/scratch/$USER/CM26_datasets/ocean3d/rawdata'))
 
 ds.param.to_netcdf(f'{PATH}/param.nc')
 
