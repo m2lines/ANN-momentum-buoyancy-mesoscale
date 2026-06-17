@@ -658,7 +658,7 @@ class DatasetCM26():
         '''
         data = xr.Dataset()
         param = self.param
-        for key in ['Fx', 'Fy']:
+        for key in ['Fx', 'Fy', 'rhox', 'rhoy']:  # rhox/rhoy carry the gradient direction for the along/across split
             data[key] = self.nanvar(self.data[key]).copy(deep=True).compute()
 
         data['Fx_pred'] = xr.zeros_like(data.Fx)
@@ -722,11 +722,32 @@ class DatasetCM26():
             M2(Fx, Fx_pred, centered=True, dims='time') / np.sqrt(M2(Fx, centered=True, dims='time') * M2(Fx_pred, centered=True, dims='time')) +
             M2(Fy, Fy_pred, centered=True, dims='time') / np.sqrt(M2(Fy, centered=True, dims='time') * M2(Fy_pred, centered=True, dims='time')))
 
+        # Decompose the horizontal flux into along- and across-gradient components
+        # (direction from the horizontal density gradient rhox, rhoy). The along-gradient
+        # (down/up-gradient) part is what GM represents; the across-gradient (rotational)
+        # part is what GM cannot capture.
+        gmag = np.sqrt(self.data.rhox**2 + self.data.rhoy**2) + 1e-30
+        nx, ny = self.data.rhox / gmag, self.data.rhoy / gmag
+        Fa,   Fr   = Fx*nx + Fy*ny,           Fy*nx - Fx*ny            # along, across (truth)
+        Fa_p, Fr_p = Fx_pred*nx + Fy_pred*ny, Fy_pred*nx - Fx_pred*ny  # along, across (pred)
+        erra, errr = Fa - Fa_p, Fr - Fr_p
+
+        skill['R2F_along']       = 1 - M2(erra) / M2(Fa)
+        skill['R2F_across']      = 1 - M2(errr) / M2(Fr)
+        skill['R2F_along_away']  = 1 - M2(erra, mask=wet2) / M2(Fa, mask=wet2)
+        skill['R2F_across_away'] = 1 - M2(errr, mask=wet2) / M2(Fr, mask=wet2)
+        skill['corr_F_along']  = M2(Fa, Fa_p, centered=True) / np.sqrt(M2(Fa, centered=True) * M2(Fa_p, centered=True))
+        skill['corr_F_across'] = M2(Fr, Fr_p, centered=True) / np.sqrt(M2(Fr, centered=True) * M2(Fr_p, centered=True))
+
         # Snapshots for plotting / scatter
         skill['Fx'] = Fx.isel(time=0)
         skill['Fy'] = Fy.isel(time=0)
         skill['Fx_pred'] = Fx_pred.isel(time=0)
         skill['Fy_pred'] = Fy_pred.isel(time=0)
+        skill['F_along'] = Fa.isel(time=0)
+        skill['F_across'] = Fr.isel(time=0)
+        skill['F_along_pred'] = Fa_p.isel(time=0)
+        skill['F_across_pred'] = Fr_p.isel(time=0)
 
         return skill
     
