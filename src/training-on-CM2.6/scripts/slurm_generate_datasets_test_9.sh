@@ -5,12 +5,12 @@
 #SBATCH --mem=128GB
 #SBATCH --begin=now
 #SBATCH --time=12:00:00
-#SBATCH --partition=cpu_short
+#SBATCH --partition=cs
 #SBATCH --job-name=gen_rho_test_9
 #SBATCH --output=gen_rho_test_9_%j.out
 #SBATCH --error=gen_rho_test_9_%j.err
-# CPU job (no GPU). If cpu_short's max walltime is < 12h, switch to cpu_prem or cs.
-# Add your allocation with: sbatch -A <account> slurm_generate_datasets_test_9.sh
+# CPU job on the torch cluster's general CPU partition `cs` (cpu_short rejects
+# with "CPU job setup is not valid" for this account). Default account works.
 
 ### Regenerate the TEST split for factor-9 with rho fluxes (Fx,Fy), after the
 ### Greene -> torch migration that lost the /vast coarse datasets.
