@@ -5,9 +5,12 @@
 #SBATCH --mem=128GB
 #SBATCH --begin=now
 #SBATCH --time=12:00:00
+#SBATCH --partition=cpu_short
 #SBATCH --job-name=gen_rho_test_9
 #SBATCH --output=gen_rho_test_9_%j.out
 #SBATCH --error=gen_rho_test_9_%j.err
+# CPU job (no GPU). If cpu_short's max walltime is < 12h, switch to cpu_prem or cs.
+# Add your allocation with: sbatch -A <account> slurm_generate_datasets_test_9.sh
 
 ### Regenerate the TEST split for factor-9 with rho fluxes (Fx,Fy), after the
 ### Greene -> torch migration that lost the /vast coarse datasets.
@@ -17,7 +20,7 @@
 
 cd /home/db194/ANN-momentum-buoyancy-mesoscale/src/training-on-CM2.6/scripts
 
-singularity exec --nv --overlay /scratch/$USER/Pavel_container.ext3:ro \
+singularity exec --overlay /scratch/$USER/Pavel_container.ext3:ro \
     /scratch/work/public/singularity/cuda11.8.86-cudnn8.7-devel-ubuntu22.04.2.sif \
     /bin/bash -c "export CM26_RAWDATA=/scratch/pp2681/CM26_datasets/ocean3d/rawdata; \
                   source /ext3/env.sh; \
