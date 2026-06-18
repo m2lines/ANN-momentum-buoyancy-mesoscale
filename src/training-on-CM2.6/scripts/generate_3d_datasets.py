@@ -63,6 +63,9 @@ if __name__ == '__main__':
         steps = len(data.time)
         for step in range(steps):
             t_e = time()
-            data.isel(time=step).to_netcdf(os.path.join(folder, f'{ds_str}-{step}.nc'))
+            outfile = os.path.join(folder, f'{ds_str}-{step}.nc')
+            if os.path.exists(outfile):
+                continue  # resume: skip snapshots already generated
+            data.isel(time=step).to_netcdf(outfile)
             t = time()
             print(f'{ds_str}: [{step+1}/{steps}]'+', Step time/ETA: [%d/%d]' % (t-t_e, (t-t_s)*(steps/(step+1)-1)))
