@@ -2,7 +2,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=120GB
+#SBATCH --mem=220GB
 #SBATCH --time=12:00:00
 #SBATCH --partition=cs
 #SBATCH --job-name=ANN_train_rho

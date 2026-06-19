@@ -29,6 +29,9 @@ if __name__ == '__main__':
     parser.add_argument('--print_iters', type=int, default=1)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--permute_factors_and_depth', type=str, default='True')
+    parser.add_argument('--validate_every', type=int, default=10,
+                        help='Compute/log validation MSE every Nth iter (1 = every iter, '
+                             'the original behaviour). Throttling speeds up training.')
     parser.add_argument('--seed', type=int, default=0,
                         help='RNG seed for reproducibility. Seeds numpy (factor/depth '
                              'permutation + random time sampling in select2d) and torch '
@@ -68,7 +71,8 @@ if __name__ == '__main__':
                   #args.gradient_features,
                   args.permute_factors_and_depth,
                   args.subfilter,
-                  args.FGR
+                  args.FGR,
+                  args.validate_every
                   )
     
     nfeatures = ann_Tall.layer_sizes[0]
