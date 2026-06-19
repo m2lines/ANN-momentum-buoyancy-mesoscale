@@ -55,6 +55,13 @@ def train_ANN_rho_fluxes(factors=[9],
     # Only these 8 data variables are used (wet comes from param, already loaded).
     # The original lazy (no-preload, validate-every-step) loop is at git 772c23b
     # (verified bit-identical weights, max abs diff 0.0); see PERFORMANCE.md.
+    #
+    # This holds ~130GB in RAM (8 of the file's 42 vars, train+validate, all 50
+    # depths). If memory ever becomes the limit (more factors/snapshots/larger grids),
+    # the easy win is to also subset depth here -- training only uses depth_idx
+    # (the even levels, ~25 of 50), so `.isel(zl=depth_idx)` would roughly halve it.
+    # That needs remapping the loop's `depth` index (currently the raw zl position)
+    # to a position within the subset; left as full-depth here for index simplicity.
     load_vars = ['Fx', 'Fy', 'rhox', 'rhoy', 'sh_xx', 'sh_xy_h', 'rel_vort_h', 'delta_x']
     for key in ['train', 'validate']:
         for factor in factors:
