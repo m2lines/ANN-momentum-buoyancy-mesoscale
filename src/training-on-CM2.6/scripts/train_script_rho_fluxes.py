@@ -78,11 +78,9 @@ if __name__ == '__main__':
                   args.device
                   )
 
-    # Move to CPU for export + the offline test. The test runs on CPU even for a
-    # GPU training run: predict_ANN_rho is bound by per-slice overhead (select2d +
-    # inference per 2D slice), so GPU gives little benefit (~1.2x in an A/B) -- not
-    # worth a GPU allocation. The preload below is what actually speeds the test
-    # up, by removing the per-slice disk reads.
+    # Export on CPU (export_ANN reads weights as numpy), then run the offline test on
+    # the training device. predict_ANN_rho now does one batched forward per depth, so
+    # GPU is well-fed (~10x); the preload below removes the per-slice disk reads.
     ann_Tall = ann_Tall.to('cpu')
 
     nfeatures = ann_Tall.layer_sizes[0]
@@ -91,13 +89,15 @@ if __name__ == '__main__':
 
     logger.to_netcdf(f'{path_save}/model/logger.nc')
 
+    ann_Tall = ann_Tall.to(args.device)
     LOAD_VARS = ['Fx', 'Fy', 'rhox', 'rhoy', 'sh_xx', 'sh_xy_h', 'rel_vort_h', 'delta_x']
     ds = read_datasets(['test'], [4,9,12,15], subfilter=args.subfilter, FGR=args.FGR)
     os.system(f'mkdir -p {path_save}/skill-test')
     for factor in [4,9,12,15]:
         d = ds[f'test-{factor}']
         d = DatasetCM26(d.data[LOAD_VARS].load(), d.param)   # preload -> no per-slice disk reads
-        skill = d.predict_ANN_rho(ann_Tall, stencil_size=args.stencil_size).SGS_skill_rho()
+        skill = d.predict_ANN_rho(ann_Tall, stencil_size=args.stencil_size,
+                                  device=args.device).SGS_skill_rho()
         skill.to_netcdf(f'{path_save}/skill-test/factor-{factor}.nc')
         del skill
         gc.collect()

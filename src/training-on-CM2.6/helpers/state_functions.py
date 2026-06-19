@@ -1602,12 +1602,16 @@ class StateFunctions():
                                        rel_vort / (gradv_norm+1e-30)
                                       ],-1)
     
+        # (wet*delta_x**2) is per grid-point (Npts,1); it broadcasts over any leading
+        # batch dim, as do rho_norm/gradv_norm (..., Npts, 1).
         output_features = ann(input_features) * rho_norm * gradv_norm * (wet * delta_x**2).reshape(-1,1)
-        # import pdb
-        # pdb.set_trace()
 
-        Fx = output_features[:,0].reshape(wet.shape)
-        Fy = output_features[:,1].reshape(wet.shape)
+        # output_features is (..., Npts, 2); split the 2 components off the last dim and
+        # restore the spatial shape, keeping any leading (batch/time) dims. For a single
+        # 2D slice the leading part is empty -> identical to reshape(wet.shape).
+        lead = output_features.shape[:-2]
+        Fx = output_features[..., 0].reshape(*lead, *wet.shape)
+        Fy = output_features[..., 1].reshape(*lead, *wet.shape)
 
         if return_xarray:
             Fx_xarray = self.data.Fx * 0 + Fx.detach().cpu().numpy()

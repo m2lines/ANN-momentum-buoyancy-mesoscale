@@ -16,38 +16,39 @@ def tensor_from_xarray(x, torch_type=torch.float32):
 def torch_pad(x, one_side_pad = 1,
                       left=False, right=False, top=False, bottom=False):
     '''
-    x is the torch tensor of size Ny x Nx
+    x is a torch tensor whose last two dims are (Ny, Nx). Any leading dims (e.g. a
+    batch/time dim) are preserved -- padding acts on the last two dims only.
     Here we implement padding with circular B.C.
     for zonal (Nx) direction and zero B.C. for meridional (Ny)
 
     By default, we do not do padding
     '''
-    ny, nx = x.shape
+    *lead, ny, nx = x.shape
 
     # Nothing to pad
     if one_side_pad == 0:
         return x
-    
+
     # Compute size of the resulting array
     Nx = nx + (int(left) + int(right)) * one_side_pad
     Ny = ny + (int(top) + int(bottom)) * one_side_pad
-    y = torch.zeros((Ny,Nx), dtype=x.dtype, device=x.device)  # preserve device (CPU/GPU)
+    y = torch.zeros((*lead, Ny, Nx), dtype=x.dtype, device=x.device)  # preserve device (CPU/GPU)
 
     # Copy original array to the center
     x_start = one_side_pad if left else 0
     y_start = one_side_pad if bottom else 0
 
-    y[y_start:y_start+ny,x_start:x_start+nx] = x
+    y[..., y_start:y_start+ny, x_start:x_start+nx] = x
 
     if top:
-        y[-one_side_pad:,:] = 0.
+        y[..., -one_side_pad:, :] = 0.
     if bottom:
-        y[:one_side_pad,:] = 0.
-    
+        y[..., :one_side_pad, :] = 0.
+
     if left:
-        y[y_start:y_start+ny,:one_side_pad] = x[:,-one_side_pad:]
+        y[..., y_start:y_start+ny, :one_side_pad] = x[..., :, -one_side_pad:]
     if right:
-        y[y_start:y_start+ny,-one_side_pad:] = x[:,:one_side_pad]
+        y[..., y_start:y_start+ny, -one_side_pad:] = x[..., :, :one_side_pad]
 
     return y
 
@@ -81,7 +82,9 @@ def image_to_nxn_stencil_gpt(x, stencil_size=3,
     '''
     n = stencil_size
     if rotation == 0:
-        y = x.unfold(0,n,1).unfold(1,n,1)
+        # Unfold the last two (spatial) dims, preserving any leading batch/time dim.
+        # For a 2D input this is identical to unfold(0).unfold(1).
+        y = x.unfold(-2,n,1).unfold(-2,n,1)
     elif rotation == 90:
         y = x.unfold(1,n,1).flip(-1).unfold(0,n,1)
     elif rotation == 180:
@@ -90,13 +93,15 @@ def image_to_nxn_stencil_gpt(x, stencil_size=3,
         y = x.unfold(1,n,1).unfold(0,n,1).flip(-1)
     else:
         print('Error: use rotation one of 0, 90, 180, 270')
-        
+
     if reflect_x:
         y = y.flip(-1)
     if reflect_y:
-        y = y.flip(-2) 
-        
-    return y.reshape(-1,n*n)
+        y = y.flip(-2)
+
+    # Collapse the two spatial dims into points, keeping any leading dims.
+    # For 2D input y.shape[:-4] is empty -> identical to reshape(-1, n*n).
+    return y.reshape(*y.shape[:-4], -1, n*n)
 
 def log_to_xarray(log_dict):
     anykey = list(log_dict.keys())[0]
