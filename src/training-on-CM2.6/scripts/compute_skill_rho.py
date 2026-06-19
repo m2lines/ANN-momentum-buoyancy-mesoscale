@@ -21,13 +21,20 @@ NTIME = int(os.environ.get('NTIME', '0'))
 OUT = os.environ.get('SKILL_OUT', f'/scratch/db194/CM26_ML_models/FGR3/EXP0/skill-{SPLIT}-rho')
 os.makedirs(OUT, exist_ok=True)
 
+# Variables predict_ANN_rho + SGS_skill_rho read; preloading them to RAM removes the
+# per-slice disk reads that otherwise dominate. Skill runs on CPU: predict_ANN_rho is
+# bound by per-slice xarray assembly, not inference, so GPU does not help it.
+LOAD_VARS = ['Fx', 'Fy', 'rhox', 'rhoy', 'sh_xx', 'sh_xy_h', 'rel_vort_h', 'delta_x']
+
 ann = import_ANN(ANN_PATH)
 ds = read_datasets([SPLIT], FACTORS)
 for f in FACTORS:
     d = ds[f'{SPLIT}-{f}']
-    if NTIME and NTIME < d.data.sizes['time']:
-        idx = np.unique(np.linspace(0, d.data.sizes['time'] - 1, NTIME).round().astype(int))
-        d = DatasetCM26(d.data.isel(time=idx), d.param)
+    data = d.data[LOAD_VARS]
+    if NTIME and NTIME < data.sizes['time']:
+        idx = np.unique(np.linspace(0, data.sizes['time'] - 1, NTIME).round().astype(int))
+        data = data.isel(time=idx)
+    d = DatasetCM26(data.load(), d.param)        # preload (subset) to RAM
     skill = d.predict_ANN_rho(ann, stencil_size=STENCIL).SGS_skill_rho()
     skill.to_netcdf(f'{OUT}/factor-{f}.nc')
     print('%-8s factor %2d:  R2F=%.4f  corr_F=%.4f' %

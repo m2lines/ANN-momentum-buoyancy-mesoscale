@@ -3,7 +3,7 @@ sys.path.append('../')
 import numpy as np
 import xarray as xr
 import torch
-from helpers.cm26 import read_datasets
+from helpers.cm26 import read_datasets, DatasetCM26
 from helpers.train_ann_fluxes import train_ANN_fluxes
 from helpers.train_rho_fluxes import *
 from helpers.feature_extractors import *
@@ -78,21 +78,26 @@ if __name__ == '__main__':
                   args.device
                   )
 
-    # Bring the model back to CPU for export + offline testing below
-    # (export_ANN reads weights as numpy; predict_ANN_rho runs on CPU).
+    # Move to CPU for export + the offline test. The test runs on CPU even for a
+    # GPU training run: predict_ANN_rho is bound by per-slice xarray assembly
+    # (return_xarray + scalar assignment), not inference, so GPU doesn't help it
+    # (and the per-slice device syncs make it slower). The preload below is what
+    # speeds the test up -- it removes the per-slice disk reads.
     ann_Tall = ann_Tall.to('cpu')
 
     nfeatures = ann_Tall.layer_sizes[0]
     export_ANN(ann_Tall, input_norms=torch.ones(nfeatures), output_norms=torch.ones(2),
             filename=f'{path_save}/model/ann_instance.nc')
-    
+
     logger.to_netcdf(f'{path_save}/model/logger.nc')
 
+    LOAD_VARS = ['Fx', 'Fy', 'rhox', 'rhoy', 'sh_xx', 'sh_xy_h', 'rel_vort_h', 'delta_x']
     ds = read_datasets(['test'], [4,9,12,15], subfilter=args.subfilter, FGR=args.FGR)
     os.system(f'mkdir -p {path_save}/skill-test')
     for factor in [4,9,12,15]:
-        skill = ds[f'test-{factor}'].predict_ANN_rho(ann_Tall,
-                                                     stencil_size=args.stencil_size).SGS_skill_rho()
+        d = ds[f'test-{factor}']
+        d = DatasetCM26(d.data[LOAD_VARS].load(), d.param)   # preload -> no per-slice disk reads
+        skill = d.predict_ANN_rho(ann_Tall, stencil_size=args.stencil_size).SGS_skill_rho()
         skill.to_netcdf(f'{path_save}/skill-test/factor-{factor}.nc')
         del skill
         gc.collect()
