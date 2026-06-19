@@ -668,6 +668,8 @@ class DatasetCM26():
         # call per (time, depth) 2D slice. ANN_rho_inference carries the leading time
         # dim, so this is bit-identical to per-slice but ~10x faster on GPU (the
         # per-slice launch/sync overhead, not the matmul, was the cost).
+        # The original per-slice loop is at git 772c23b (verified bit-identical, max
+        # abs diff 0.0); see src/training-on-CM2.6/PERFORMANCE.md for the full story.
         for zl in range(len(self.data.zl)):
             batch = DatasetCM26(self.data.isel(zl=zl), self.param.isel(zl=zl))
             prediction = batch.state.ANN_rho_inference(ann, return_xarray=False, **kw)

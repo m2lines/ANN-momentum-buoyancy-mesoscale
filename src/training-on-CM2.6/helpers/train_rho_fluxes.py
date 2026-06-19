@@ -53,6 +53,8 @@ def train_ANN_rho_fluxes(factors=[9],
     # to_numpy on a lazy array), which dominates runtime. Load the variables the
     # training step actually touches into memory once, so every step is RAM-fast.
     # Only these 8 data variables are used (wet comes from param, already loaded).
+    # The original lazy (no-preload, validate-every-step) loop is at git 772c23b
+    # (verified bit-identical weights, max abs diff 0.0); see PERFORMANCE.md.
     load_vars = ['Fx', 'Fy', 'rhox', 'rhoy', 'sh_xx', 'sh_xy_h', 'rel_vort_h', 'delta_x']
     for key in ['train', 'validate']:
         for factor in factors:
