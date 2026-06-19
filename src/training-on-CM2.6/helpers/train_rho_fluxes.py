@@ -10,9 +10,9 @@ import itertools
 import os
 from time import time
 
-def get_rho_fluxes(batch):
-    Fx = tensor_from_xarray(batch.data.Fx)
-    Fy = tensor_from_xarray(batch.data.Fy)
+def get_rho_fluxes(batch, device='cpu'):
+    Fx = tensor_from_xarray(batch.data.Fx).to(device)
+    Fy = tensor_from_xarray(batch.data.Fy).to(device)
 
     F_norm = 1. / torch.sqrt((Fx**2 + Fy**2).mean())
     Fx = Fx * F_norm
@@ -36,7 +36,8 @@ def train_ANN_rho_fluxes(factors=[9],
               permute_factors_and_depth=True,
               subfilter='subfilter',
               FGR=3,
-              validate_every=10):
+              validate_every=10,
+              device='cpu'):
     '''
     time_iters is the number of time snaphots
     randomly sampled for each factor and depth
@@ -67,9 +68,9 @@ def train_ANN_rho_fluxes(factors=[9],
     logger['MSE_validate'] = xr.full_like(logger['MSE_train'], np.nan)
 
     ########## Init ANN ##############
-    # As default we have 3 input features on a stencil: D, D_hat and vorticity
+    # 5 input features per stencil point: rhox, rhoy, sh_xx, sh_xy, rel_vort
     num_input_features = stencil_size**2 * 5
-    ann_instance = ANN([num_input_features, *hidden_layers, 2])
+    ann_instance = ANN([num_input_features, *hidden_layers, 2]).to(device)
     
     ########## Random sampling of depth and factors #######
     def iterator(x,y):
@@ -109,10 +110,10 @@ def train_ANN_rho_fluxes(factors=[9],
             batch = drop_polar_fold(dataset[f'train-{factor}'].select2d(zl=depth))
 
             ############## Training step ###############
-            Fx, Fy, F_norm = get_rho_fluxes(batch)
-            
+            Fx, Fy, F_norm = get_rho_fluxes(batch, device=device)
+
             optimizer.zero_grad()
-            prediction = batch.state.ANN_rho_inference(ann_instance, stencil_size=stencil_size)
+            prediction = batch.state.ANN_rho_inference(ann_instance, stencil_size=stencil_size, device=device)
             ANNx = prediction['Fx'] * F_norm
             ANNy = prediction['Fy'] * F_norm
             MSE_train = ((ANNx-Fx)**2 + (ANNy-Fy)**2).mean()
@@ -131,10 +132,10 @@ def train_ANN_rho_fluxes(factors=[9],
             if do_validate:
                 batch = drop_polar_fold(dataset[f'validate-{factor}'].select2d(zl=depth))
 
-                Fx, Fy, F_norm = get_rho_fluxes(batch)
+                Fx, Fy, F_norm = get_rho_fluxes(batch, device=device)
 
                 with torch.no_grad():
-                    prediction = batch.state.ANN_rho_inference(ann_instance, stencil_size=stencil_size)
+                    prediction = batch.state.ANN_rho_inference(ann_instance, stencil_size=stencil_size, device=device)
 
                 ANNx = prediction['Fx'] * F_norm
                 ANNy = prediction['Fy'] * F_norm

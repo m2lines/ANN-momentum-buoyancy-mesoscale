@@ -36,6 +36,8 @@ if __name__ == '__main__':
                         help='RNG seed for reproducibility. Seeds numpy (factor/depth '
                              'permutation + random time sampling in select2d) and torch '
                              '(ANN weight init). Set distinct seeds for an ensemble.')
+    parser.add_argument('--device', type=str, default='cpu',
+                        help="'cpu' or 'cuda'. cuda runs the feature build + ANN on GPU.")
 
     parser.add_argument('--path_save', type=str, default='EXP0')
 
@@ -72,11 +74,16 @@ if __name__ == '__main__':
                   args.permute_factors_and_depth,
                   args.subfilter,
                   args.FGR,
-                  args.validate_every
+                  args.validate_every,
+                  args.device
                   )
-    
+
+    # Bring the model back to CPU for export + offline testing below
+    # (export_ANN reads weights as numpy; predict_ANN_rho runs on CPU).
+    ann_Tall = ann_Tall.to('cpu')
+
     nfeatures = ann_Tall.layer_sizes[0]
-    export_ANN(ann_Tall, input_norms=torch.ones(nfeatures), output_norms=torch.ones(2), 
+    export_ANN(ann_Tall, input_norms=torch.ones(nfeatures), output_norms=torch.ones(2),
             filename=f'{path_save}/model/ann_instance.nc')
     
     logger.to_netcdf(f'{path_save}/model/logger.nc')

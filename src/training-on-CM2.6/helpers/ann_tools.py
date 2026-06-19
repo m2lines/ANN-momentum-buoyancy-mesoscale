@@ -31,7 +31,7 @@ def torch_pad(x, one_side_pad = 1,
     # Compute size of the resulting array
     Nx = nx + (int(left) + int(right)) * one_side_pad
     Ny = ny + (int(top) + int(bottom)) * one_side_pad
-    y = torch.zeros((Ny,Nx), dtype=x.dtype)
+    y = torch.zeros((Ny,Nx), dtype=x.dtype, device=x.device)  # preserve device (CPU/GPU)
 
     # Copy original array to the center
     x_start = one_side_pad if left else 0

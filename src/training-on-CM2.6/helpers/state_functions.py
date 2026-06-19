@@ -1571,16 +1571,18 @@ class StateFunctions():
         
         return {'Txx': Txx, 'Tyy': Tyy, 'Txy': Txy}
     
-    def ANN_rho_inference(self, ann=None, stencil_size = 3, return_xarray=False):
+    def ANN_rho_inference(self, ann=None, stencil_size = 3, return_xarray=False, device='cpu'):
         if 'zl' in self.data.dims:
             print('Error: please select a single depth level')
             return
-        
-        delta_x = tensor_from_xarray(self.data.delta_x)
-        wet = tensor_from_xarray(self.param.wet)
+
+        # device='cuda' keeps the whole pipeline (stencil/norm/concat + ANN) on the GPU;
+        # the only host work left is reading the raw fields off the (in-RAM) xarray.
+        delta_x = tensor_from_xarray(self.data.delta_x).to(device)
+        wet = tensor_from_xarray(self.param.wet).to(device)
 
         def extract_nxn(x):
-            y = torch_pad(tensor_from_xarray(x), one_side_pad=stencil_size//2, left=True, right=True, top=True, bottom=True)
+            y = torch_pad(tensor_from_xarray(x).to(device), one_side_pad=stencil_size//2, left=True, right=True, top=True, bottom=True)
             return image_to_nxn_stencil_gpt(y, stencil_size=stencil_size)
 
         # Tensor of size 9xNsamples
@@ -1608,8 +1610,8 @@ class StateFunctions():
         Fy = output_features[:,1].reshape(wet.shape)
 
         if return_xarray:
-            Fx_xarray = self.data.Fx * 0 + Fx.detach().numpy()
-            Fy_xarray = self.data.Fy * 0 + Fy.detach().numpy()
+            Fx_xarray = self.data.Fx * 0 + Fx.detach().cpu().numpy()
+            Fy_xarray = self.data.Fy * 0 + Fy.detach().cpu().numpy()
         else:
             Fx_xarray = None
             Fy_xarray = None
