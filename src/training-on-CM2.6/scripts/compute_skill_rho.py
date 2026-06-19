@@ -9,14 +9,17 @@ ANN_PATH = os.environ.get('ANN_PATH',
     'buoyancy/hidden-layer-32-32/seed-default/model/ann_instance_20Dec.nc')
 FACTORS = eval(os.environ.get('FACTORS', '[9]'))
 STENCIL = int(os.environ.get('STENCIL', '3'))
-OUT = os.environ.get('SKILL_OUT', '/scratch/db194/CM26_ML_models/FGR3/EXP0/skill-test-rho')
+# SPLIT selects which dataset to score: 'test' (default), 'validate', or 'train'.
+# Comparing R2F across the three is the overfitting check.
+SPLIT = os.environ.get('SPLIT', 'test')
+OUT = os.environ.get('SKILL_OUT', f'/scratch/db194/CM26_ML_models/FGR3/EXP0/skill-{SPLIT}-rho')
 os.makedirs(OUT, exist_ok=True)
 
 ann = import_ANN(ANN_PATH)
-ds = read_datasets(['test'], FACTORS)
+ds = read_datasets([SPLIT], FACTORS)
 for f in FACTORS:
-    skill = ds[f'test-{f}'].predict_ANN_rho(ann, stencil_size=STENCIL).SGS_skill_rho()
+    skill = ds[f'{SPLIT}-{f}'].predict_ANN_rho(ann, stencil_size=STENCIL).SGS_skill_rho()
     skill.to_netcdf(f'{OUT}/factor-{f}.nc')
-    print('factor %2d:  R2F=%.4f  corr_F=%.4f' %
-          (f, float(skill.R2F.mean()), float(skill.corr_F.mean())), flush=True)
+    print('%-8s factor %2d:  R2F=%.4f  corr_F=%.4f' %
+          (SPLIT, f, float(skill.R2F.mean()), float(skill.corr_F.mean())), flush=True)
 print('DONE', flush=True)
