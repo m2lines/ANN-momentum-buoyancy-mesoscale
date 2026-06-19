@@ -1,6 +1,7 @@
 import sys
 sys.path.append('../')
 import numpy as np
+import xarray as xr
 from helpers.cm26 import DatasetCM26
 from helpers.operators import *
 import os
@@ -65,7 +66,18 @@ if __name__ == '__main__':
             t_e = time()
             outfile = os.path.join(folder, f'{ds_str}-{step}.nc')
             if os.path.exists(outfile):
-                continue  # resume: skip snapshots already generated
+                # resume: skip only if the existing file is genuinely complete.
+                # A crash mid-write (e.g. scratch full) can leave a full-size but
+                # all-NaN file; trusting mere existence then silently keeps garbage.
+                # Validate the yq coordinate is finite before skipping.
+                try:
+                    with xr.open_dataset(outfile) as chk:
+                        if bool(np.isfinite(chk.yq.values).all()):
+                            continue
+                    print(f'{ds_str}: [{step+1}/{steps}] existing file corrupt (NaN coord) -> regenerating')
+                except Exception:
+                    print(f'{ds_str}: [{step+1}/{steps}] existing file unreadable -> regenerating')
+                os.remove(outfile)
             data.isel(time=step).to_netcdf(outfile)
             t = time()
             print(f'{ds_str}: [{step+1}/{steps}]'+', Step time/ETA: [%d/%d]' % (t-t_e, (t-t_s)*(steps/(step+1)-1)))
