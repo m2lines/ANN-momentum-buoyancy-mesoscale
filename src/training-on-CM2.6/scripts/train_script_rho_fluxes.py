@@ -79,10 +79,10 @@ if __name__ == '__main__':
                   )
 
     # Move to CPU for export + the offline test. The test runs on CPU even for a
-    # GPU training run: predict_ANN_rho is bound by per-slice xarray assembly
-    # (return_xarray + scalar assignment), not inference, so GPU doesn't help it
-    # (and the per-slice device syncs make it slower). The preload below is what
-    # speeds the test up -- it removes the per-slice disk reads.
+    # GPU training run: predict_ANN_rho is bound by per-slice overhead (select2d +
+    # inference per 2D slice), so GPU gives little benefit (~1.2x in an A/B) -- not
+    # worth a GPU allocation. The preload below is what actually speeds the test
+    # up, by removing the per-slice disk reads.
     ann_Tall = ann_Tall.to('cpu')
 
     nfeatures = ann_Tall.layer_sizes[0]

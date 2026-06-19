@@ -23,7 +23,8 @@ os.makedirs(OUT, exist_ok=True)
 
 # Variables predict_ANN_rho + SGS_skill_rho read; preloading them to RAM removes the
 # per-slice disk reads that otherwise dominate. Skill runs on CPU: predict_ANN_rho is
-# bound by per-slice xarray assembly, not inference, so GPU does not help it.
+# bound by per-slice overhead (select2d + inference), so GPU gives little benefit
+# (~1.2x) -- not worth a GPU allocation for a one-time eval.
 LOAD_VARS = ['Fx', 'Fy', 'rhox', 'rhoy', 'sh_xx', 'sh_xy_h', 'rel_vort_h', 'delta_x']
 
 ann = import_ANN(ANN_PATH)

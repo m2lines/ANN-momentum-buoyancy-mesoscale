@@ -13,8 +13,8 @@
 ### Factors passed as a positional arg (NOT --export: commas in "[4,9,12,15]" collide
 ### with --export's comma separator). SPLIT (test/validate/train) via --export is fine.
 ### Usage: sbatch --export=ALL,SPLIT=validate --job-name=skill_validate slurm_skill_rho.sh "[4,9,12,15]"
-### CPU-only: predict_ANN_rho is bound by per-slice xarray assembly, not inference,
-### so GPU does not help the skill computation (it is slower).
+### CPU: predict_ANN_rho is bound by per-slice overhead (select2d + inference), so a
+### GPU gives little benefit (~1.2x in an A/B) -- not worth a GPU allocation here.
 FACTORS="${1:-[9]}"
 SPLIT="${SPLIT:-test}"
 NTIME="${NTIME:-0}"   # 0 = all snapshots; set e.g. 24 to subsample train to test's count
