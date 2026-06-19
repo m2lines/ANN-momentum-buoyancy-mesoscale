@@ -29,10 +29,18 @@ if __name__ == '__main__':
     parser.add_argument('--print_iters', type=int, default=1)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--permute_factors_and_depth', type=str, default='True')
+    parser.add_argument('--seed', type=int, default=0,
+                        help='RNG seed for reproducibility. Seeds numpy (factor/depth '
+                             'permutation + random time sampling in select2d) and torch '
+                             '(ANN weight init). Set distinct seeds for an ensemble.')
 
     parser.add_argument('--path_save', type=str, default='EXP0')
 
     args = parser.parse_args()
+
+    # Seed before any sampling or weight init so the run is reproducible.
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
 
     path_save = os.path.expandvars(f'/scratch/$USER/mom6/CM26_ML_models/FGR{args.FGR}/{args.path_save}')
 
