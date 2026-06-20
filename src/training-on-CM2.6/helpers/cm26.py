@@ -735,8 +735,14 @@ class DatasetCM26():
         # (perpendicular to) the local horizontal density gradient (rhox, rhoy).
         # A downgradient-diffusive flux (-k grad rho) is purely along-gradient.
         # (Physical interpretation of the across component is TBD -- not asserting "rotational".)
-        gmag = np.sqrt(self.data.rhox**2 + self.data.rhoy**2) + 1e-30
-        nx, ny = self.data.rhox / gmag, self.data.rhoy / gmag
+        # Compute the unit normal in float64. In float32, |grad rho|^2 underflows to 0
+        # at the very weak deep-ocean gradients (e.g. rhox~7e-25 -> rhox^2~5e-49, below
+        # the float32 denormal floor), so gmag pinned to the 1e-30 floor while rhox did
+        # not -> nx=rhox/gmag exploded to ~1e5 and a few cells sent R2F_along to ~-120.
+        # ANN_rho_inference already does its norms in float64 for the same reason.
+        rhox64, rhoy64 = self.data.rhox.astype('float64'), self.data.rhoy.astype('float64')
+        gmag = np.sqrt(rhox64**2 + rhoy64**2) + 1e-30
+        nx, ny = rhox64 / gmag, rhoy64 / gmag
         Fa,   Fr   = Fx*nx + Fy*ny,           Fy*nx - Fx*ny            # along, across (truth)
         Fa_p, Fr_p = Fx_pred*nx + Fy_pred*ny, Fy_pred*nx - Fx_pred*ny  # along, across (pred)
         erra, errr = Fa - Fa_p, Fr - Fr_p
