@@ -38,7 +38,8 @@ def train_ANN_rho_fluxes(factors=[9],
               FGR=3,
               validate_every=10,
               device='cpu',
-              rotated=False):
+              rotated=False,
+              loss='mse'):
     '''
     time_iters is the number of time snaphots
     randomly sampled for each factor and depth
@@ -104,6 +105,14 @@ def train_ANN_rho_fluxes(factors=[9],
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, 
             milestones=[int(time_iters/2), int(time_iters*3/4), int(time_iters*7/8)], gamma=0.1)
 
+    # loss on the (per-slice flux-normalized) prediction vs truth: mean-squared ('mse',
+    # the default) or mean-absolute ('mae', as in Part 1). The offline R2 metric is the
+    # same regardless of which loss the model was trained with.
+    def loss_fn(ax, ay, fx, fy):
+        if loss == 'mae':
+            return (torch.abs(ax - fx) + torch.abs(ay - fy)).mean()
+        return ((ax - fx)**2 + (ay - fy)**2).mean()
+
     t_s = time()
     for time_iter in range(time_iters):
         t_e = time()
@@ -126,7 +135,7 @@ def train_ANN_rho_fluxes(factors=[9],
             prediction = batch.state.ANN_rho_inference(ann_instance, stencil_size=stencil_size, device=device, rotated=rotated)
             ANNx = prediction['Fx'] * F_norm
             ANNy = prediction['Fy'] * F_norm
-            MSE_train = ((ANNx-Fx)**2 + (ANNy-Fy)**2).mean()
+            MSE_train = loss_fn(ANNx, ANNy, Fx, Fy)
 
             MSE_train.backward()
             optimizer.step()
@@ -149,7 +158,7 @@ def train_ANN_rho_fluxes(factors=[9],
 
                 ANNx = prediction['Fx'] * F_norm
                 ANNy = prediction['Fy'] * F_norm
-                MSE_validate = float(((ANNx-Fx)**2 + (ANNy-Fy)**2).mean().data)
+                MSE_validate = float(loss_fn(ANNx, ANNy, Fx, Fy).data)
                 logger['MSE_validate'].loc[{'iter': time_iter, 'factor': factor, 'depth': depth}] = MSE_validate
 
                 del batch

@@ -41,6 +41,8 @@ if __name__ == '__main__':
     parser.add_argument('--rotated', type=int, default=0,
                         help='1 = continuous flow-aligned rotation (Part 1): rotate inputs into '
                              'the local density-gradient frame, predict along/across, rotate back.')
+    parser.add_argument('--loss', type=str, default='mse',
+                        help="training loss on the normalized flux: 'mse' (default) or 'mae' (Part 1).")
 
     parser.add_argument('--path_save', type=str, default='EXP0')
 
@@ -79,7 +81,8 @@ if __name__ == '__main__':
                   args.FGR,
                   args.validate_every,
                   args.device,
-                  bool(args.rotated)
+                  bool(args.rotated),
+                  args.loss
                   )
 
     # Export on CPU (export_ANN reads weights as numpy), then run the offline test on

@@ -11,11 +11,12 @@ set de-duplicates naturally (the baseline is shared across axes, run once).
 """
 
 
-def cfg(stencil_size, hidden_layers, seed, rotated=False):
+def cfg(stencil_size, hidden_layers, seed, rotated=False, loss='mse'):
     h = hidden_layers.strip('[]').replace(', ', '-').replace(',', '-')
-    name = f'st{stencil_size}_h{h}_s{seed}' + ('_rot' if rotated else '')
+    name = (f'st{stencil_size}_h{h}_s{seed}'
+            + ('_rot' if rotated else '') + ('' if loss == 'mse' else f'_{loss}'))
     return dict(name=name, stencil_size=stencil_size, hidden_layers=hidden_layers,
-                seed=seed, rotated=int(rotated))
+                seed=seed, rotated=int(rotated), loss=loss)
 
 
 # Phase 1 -- no new code needed (only stencil / hidden / seed vary).
@@ -35,7 +36,9 @@ _phase1 = [
 # Phase 2 -- impact_rotation: continuous flow-aligned rotation (Part 1). Baseline (off) vs on,
 # at the canonical config. The on-the-fly rotation in ANN_rho_inference is verified equivariant
 # (scripts/test_rotation_equivariance.py).
-_phase2 = [cfg(3, '[32,32]', 0, rotated=True)]
+# impact_loss_style: training loss MSE (baseline) vs MAE (Part 1).
+_phase2 = [cfg(3, '[32,32]', 0, rotated=True),
+           cfg(3, '[32,32]', 0, loss='mae')]
 
 # de-duplicate (the baseline is shared by several axes)
 CONFIGS = {c['name']: c for c in _phase1 + _phase2}
@@ -60,3 +63,6 @@ def seed_axis():          # impact_random_seed (baseline config across seeds)
 
 def rotation_axis():      # impact_rotation (flow-aligned off vs on)
     return [cfg(3, '[32,32]', 0)['name'], cfg(3, '[32,32]', 0, rotated=True)['name']]
+
+def loss_style_axis():    # impact_loss_style (mse vs mae)
+    return [cfg(3, '[32,32]', 0)['name'], cfg(3, '[32,32]', 0, loss='mae')['name']]
