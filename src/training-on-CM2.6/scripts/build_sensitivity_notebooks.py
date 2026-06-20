@@ -106,7 +106,41 @@ ax.set_title('Seed spread: mean $R^2$ = %.4f +/- %.4f (std)' % (np.mean(allv), n
 plt.savefig('impact_random_seed.pdf', bbox_inches='tight'); plt.show()"""),
 ]
 
-NOTEBOOKS = {'impact_stencil': STENCIL, 'impact_model_sizes': MODEL, 'impact_random_seed': SEED}
+ROTATION = [
+    ('md', "# Impact of flow-aligned rotation\n\n"
+           "Continuous flow-aligned rotation (Part 1): rotate inputs into the local density-gradient "
+           "frame, predict along/across, rotate back. Off (baseline) vs on. The rotation is "
+           "equivariance-verified (scripts/test_rotation_equivariance.py)."),
+    ('code', SETUP + "\nfrom sensitivity_configs import rotation_axis"),
+    ('code', """labs = {rotation_axis()[0]: 'no rotation', rotation_axis()[1]: 'flow-aligned'}
+fig, ax = plt.subplots(1, 3, figsize=(15, 4))
+for a, m, t in zip(ax, ['R2F', 'R2F_along', 'R2F_across'], ['combined', 'along', 'across']):
+    for n in rotation_axis():
+        dm = depth_mean(n, m)
+        if dm: a.plot(SPAC, [dm[f] for f in FACTORS], '-o', label=labs[n])
+    a.set_xlabel('coarse-grid spacing [deg]'); a.set_ylabel('$R^2$ (%s)' % t)
+    a.legend(); a.grid(alpha=0.3)
+plt.suptitle('Impact of flow-aligned rotation'); plt.tight_layout()
+plt.savefig('impact_rotation.pdf', bbox_inches='tight'); plt.show()"""),
+]
+
+LOSS = [
+    ('md', "# Impact of training loss style (MSE vs MAE)\n\n"
+           "Training loss on the per-snapshot normalized flux: mean-squared (baseline) vs "
+           "mean-absolute (Part 1). The offline R^2 metric is independent of the training loss."),
+    ('code', SETUP + "\nfrom sensitivity_configs import loss_style_axis"),
+    ('code', """labs = {loss_style_axis()[0]: 'MSE', loss_style_axis()[1]: 'MAE'}
+fig, ax = plt.subplots(figsize=(6, 4))
+for n in loss_style_axis():
+    dm = depth_mean(n, 'R2F')
+    if dm: ax.plot(SPAC, [dm[f] for f in FACTORS], '-o', label=labs[n])
+ax.set_xlabel('coarse-grid spacing [deg]'); ax.set_ylabel('$R^2$ (depth-mean)')
+ax.legend(); ax.grid(alpha=0.3); ax.set_title('Impact of training loss style')
+plt.savefig('impact_loss_style.pdf', bbox_inches='tight'); plt.show()"""),
+]
+
+NOTEBOOKS = {'impact_stencil': STENCIL, 'impact_model_sizes': MODEL, 'impact_random_seed': SEED,
+             'impact_rotation': ROTATION, 'impact_loss_style': LOSS}
 
 
 def cell(t, src):

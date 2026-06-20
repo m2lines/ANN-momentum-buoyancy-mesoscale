@@ -100,7 +100,23 @@ Headline = mean R²F over the 4 resolutions (depth-mean per factor, then average
   differences above are real and well above run-to-run noise.
 
 Decision surfaced for DB: **consider bumping the canonical hidden to [48,48]** (matches Part 1,
-+~0.017 R² at negligible cost) vs keeping [32,32]. Stencil 3×3 confirmed; 5×5 optional (+0.03).
++~0.017 R² at negligible cost) vs keeping [32,32] ("either is fine"). Stencil 3×3 confirmed;
+5×5 optional (+0.03).
+
+## Phase 2 results (2026-06-20) — DONE
+- **Rotation** (continuous flow-aligned, on-the-fly in ANN_rho_inference, equivariance-verified
+  via `test_rotation_equivariance.py`): off=0.702, **on=0.685** mean R²F — rotation *slightly
+  hurts* offline (−0.017), consistently across resolutions and metrics (along/across, corr too).
+  Reading: the rotation is an invariance constraint; its payoff is cross-config generalization
+  (untestable in same-distribution offline), so it costs a little in-distribution skill. →
+  **keep no-rotation offline**; revisit for online generalization. Written into main §3.1 (brief)
+  + SI Text S1 (full), commit `c8b8651` in the paper repo.
+- **Loss style** (`--loss mse|mae`): MSE=0.702, MAE=0.696 — a wash (MSE mildly favored since R²
+  is squared-error-based). → keep MSE. Minor knob, as in Part 1.
+
+Phase 3 (non-dim off, input features) deliberately deferred: non-dim's payoff is cross-distribution
+(low offline value + training-stability risk); input features entangle with the norm groups + the
+rotation transforms (error-prone, not a quick win).
 
 ## Outputs
 - A figure set mirroring Part 1: R²/corr vs stencil, vs capacity, vs resolution; depth
