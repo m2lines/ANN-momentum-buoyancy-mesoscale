@@ -38,6 +38,9 @@ if __name__ == '__main__':
                              '(ANN weight init). Set distinct seeds for an ensemble.')
     parser.add_argument('--device', type=str, default='cpu',
                         help="'cpu' or 'cuda'. cuda runs the feature build + ANN on GPU.")
+    parser.add_argument('--rotated', type=int, default=0,
+                        help='1 = continuous flow-aligned rotation (Part 1): rotate inputs into '
+                             'the local density-gradient frame, predict along/across, rotate back.')
 
     parser.add_argument('--path_save', type=str, default='EXP0')
 
@@ -75,7 +78,8 @@ if __name__ == '__main__':
                   args.subfilter,
                   args.FGR,
                   args.validate_every,
-                  args.device
+                  args.device,
+                  bool(args.rotated)
                   )
 
     # Export on CPU (export_ANN reads weights as numpy), then run the offline test on
@@ -97,7 +101,7 @@ if __name__ == '__main__':
         d = ds[f'test-{factor}']
         d = DatasetCM26(d.data[LOAD_VARS].load(), d.param)   # preload -> no per-slice disk reads
         skill = d.predict_ANN_rho(ann_Tall, stencil_size=args.stencil_size,
-                                  device=args.device).SGS_skill_rho()
+                                  device=args.device, rotated=bool(args.rotated)).SGS_skill_rho()
         skill.to_netcdf(f'{path_save}/skill-test/factor-{factor}.nc')
         del skill
         gc.collect()

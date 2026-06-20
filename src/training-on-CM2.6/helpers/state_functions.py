@@ -1571,7 +1571,7 @@ class StateFunctions():
         
         return {'Txx': Txx, 'Tyy': Tyy, 'Txy': Txy}
     
-    def ANN_rho_inference(self, ann=None, stencil_size = 3, return_xarray=False, device='cpu'):
+    def ANN_rho_inference(self, ann=None, stencil_size = 3, return_xarray=False, device='cpu', rotated=False):
         if 'zl' in self.data.dims:
             print('Error: please select a single depth level')
             return
@@ -1592,6 +1592,25 @@ class StateFunctions():
         sh_xy = extract_nxn(self.data.sh_xy_h)
         rel_vort = extract_nxn(self.data.rel_vort_h)
 
+        if rotated:
+            # Continuous flow-aligned rotation (Part 1, balwada2025design): rotate every input
+            # into the frame of the local density gradient, so the parameterization is invariant
+            # to coordinate orientation. n=(nx,ny) is the unit gradient direction at the stencil
+            # CENTER (the prediction point). The density gradient is a vector (rotates by theta);
+            # the strain is a rank-2 traceless tensor (rotates by 2*theta); the relative vorticity
+            # is a pseudoscalar (rotation-invariant). The norms below are unchanged by rotation,
+            # and the predicted (F_along, F_across) is rotated back to (Fx, Fy) at the end.
+            ci = (stencil_size * stencil_size) // 2          # flattened-stencil center index
+            rx0 = rhox[..., ci:ci+1].type(torch.float64)     # center gradient (..., Npts, 1)
+            ry0 = rhoy[..., ci:ci+1].type(torch.float64)
+            gmag0 = torch.sqrt(rx0**2 + ry0**2) + 1e-30      # float64 -> no underflow (cf. SGS_skill_rho)
+            nx = (rx0 / gmag0).type(torch.float32)
+            ny = (ry0 / gmag0).type(torch.float32)
+            c2, s2 = nx*nx - ny*ny, 2*nx*ny                  # cos(2 theta), sin(2 theta)
+            rhox, rhoy = rhox*nx + rhoy*ny,  rhoy*nx - rhox*ny           # gradient (spin-1) -> along/across
+            sh_xx, sh_xy = sh_xx*c2 + sh_xy*s2,  -sh_xx*s2 + sh_xy*c2    # strain tensor (spin-2)
+            # rel_vort unchanged (rotation-invariant)
+
         rho_norm = torch.sqrt((rhox.type(torch.float64)**2 + rhoy.type(torch.float64)**2).sum(dim=-1, keepdims=True)).type(torch.float32)
         gradv_norm = torch.sqrt((sh_xx.type(torch.float64)**2 + sh_xy.type(torch.float64)**2 + rel_vort.type(torch.float64)**2).sum(dim=-1, keepdims=True)).type(torch.float32)
 
@@ -1610,8 +1629,15 @@ class StateFunctions():
         # restore the spatial shape, keeping any leading (batch/time) dims. For a single
         # 2D slice the leading part is empty -> identical to reshape(wet.shape).
         lead = output_features.shape[:-2]
-        Fx = output_features[..., 0].reshape(*lead, *wet.shape)
-        Fy = output_features[..., 1].reshape(*lead, *wet.shape)
+        if rotated:
+            # network predicted (F_along, F_across) in the gradient frame; rotate back to (Fx, Fy)
+            fal, fac = output_features[..., 0], output_features[..., 1]
+            nxc, nyc = nx[..., 0], ny[..., 0]
+            Fx = (fal*nxc - fac*nyc).reshape(*lead, *wet.shape)
+            Fy = (fal*nyc + fac*nxc).reshape(*lead, *wet.shape)
+        else:
+            Fx = output_features[..., 0].reshape(*lead, *wet.shape)
+            Fy = output_features[..., 1].reshape(*lead, *wet.shape)
 
         if return_xarray:
             Fx_xarray = self.data.Fx * 0 + Fx.detach().cpu().numpy()

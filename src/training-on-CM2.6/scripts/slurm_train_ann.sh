@@ -25,6 +25,7 @@ HIDDEN="${1:-[32,32]}"
 STENCIL="${STENCIL:-3}"
 ITERS="${ITERS:-500}"
 SEED="${SEED:-0}"
+ROTATED="${ROTATED:-0}"
 PATH_SAVE="${PATH_SAVE:-EXP1}"
 DEVICE="${DEVICE:-cpu}"
 
@@ -38,4 +39,4 @@ singularity exec $NVFLAG --overlay /scratch/$USER/Pavel_container.ext3:ro \
     /bin/bash -c "source /ext3/env.sh; \
         time python -u train_script_rho_fluxes.py \
             --hidden_layers='$HIDDEN' --stencil_size=$STENCIL --time_iters=$ITERS \
-            --seed=$SEED --device=$DEVICE --path_save=$PATH_SAVE"
+            --seed=$SEED --device=$DEVICE --rotated=$ROTATED --path_save=$PATH_SAVE"

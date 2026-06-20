@@ -37,7 +37,8 @@ def train_ANN_rho_fluxes(factors=[9],
               subfilter='subfilter',
               FGR=3,
               validate_every=10,
-              device='cpu'):
+              device='cpu',
+              rotated=False):
     '''
     time_iters is the number of time snaphots
     randomly sampled for each factor and depth
@@ -122,7 +123,7 @@ def train_ANN_rho_fluxes(factors=[9],
             Fx, Fy, F_norm = get_rho_fluxes(batch, device=device)
 
             optimizer.zero_grad()
-            prediction = batch.state.ANN_rho_inference(ann_instance, stencil_size=stencil_size, device=device)
+            prediction = batch.state.ANN_rho_inference(ann_instance, stencil_size=stencil_size, device=device, rotated=rotated)
             ANNx = prediction['Fx'] * F_norm
             ANNy = prediction['Fy'] * F_norm
             MSE_train = ((ANNx-Fx)**2 + (ANNy-Fy)**2).mean()
@@ -144,7 +145,7 @@ def train_ANN_rho_fluxes(factors=[9],
                 Fx, Fy, F_norm = get_rho_fluxes(batch, device=device)
 
                 with torch.no_grad():
-                    prediction = batch.state.ANN_rho_inference(ann_instance, stencil_size=stencil_size, device=device)
+                    prediction = batch.state.ANN_rho_inference(ann_instance, stencil_size=stencil_size, device=device, rotated=rotated)
 
                 ANNx = prediction['Fx'] * F_norm
                 ANNy = prediction['Fy'] * F_norm

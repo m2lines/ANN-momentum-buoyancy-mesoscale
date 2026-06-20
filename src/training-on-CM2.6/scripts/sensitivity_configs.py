@@ -11,10 +11,11 @@ set de-duplicates naturally (the baseline is shared across axes, run once).
 """
 
 
-def cfg(stencil_size, hidden_layers, seed):
+def cfg(stencil_size, hidden_layers, seed, rotated=False):
     h = hidden_layers.strip('[]').replace(', ', '-').replace(',', '-')
-    return dict(name=f'st{stencil_size}_h{h}_s{seed}',
-                stencil_size=stencil_size, hidden_layers=hidden_layers, seed=seed)
+    name = f'st{stencil_size}_h{h}_s{seed}' + ('_rot' if rotated else '')
+    return dict(name=name, stencil_size=stencil_size, hidden_layers=hidden_layers,
+                seed=seed, rotated=int(rotated))
 
 
 # Phase 1 -- no new code needed (only stencil / hidden / seed vary).
@@ -31,11 +32,15 @@ _phase1 = [
     cfg(3, '[32,32]', 3), cfg(3, '[32,32]', 4),
 ]
 
-# de-duplicate (the baseline is shared by several axes)
-CONFIGS = {c['name']: c for c in _phase1}
+# Phase 2 -- impact_rotation: continuous flow-aligned rotation (Part 1). Baseline (off) vs on,
+# at the canonical config. The on-the-fly rotation in ANN_rho_inference is verified equivariant
+# (scripts/test_rotation_equivariance.py).
+_phase2 = [cfg(3, '[32,32]', 0, rotated=True)]
 
-# Phase 2+ (need new code paths -- non-dim off, flow-aligned rotation, extra inputs, loss
-# style). Added here once those paths exist; left out of CONFIGS until then.
+# de-duplicate (the baseline is shared by several axes)
+CONFIGS = {c['name']: c for c in _phase1 + _phase2}
+
+# Phase 3+ (still need new code paths -- non-dim off, extra inputs, loss style).
 
 # -- selectors the evaluation notebooks use to pull each axis's subset --
 BASELINE = cfg(3, '[32,32]', 0)['name']
@@ -52,3 +57,6 @@ def model_size_seeds(width='[32,32]'):  # seed spread at a given width (for erro
 
 def seed_axis():          # impact_random_seed (baseline config across seeds)
     return [cfg(3, '[32,32]', s)['name'] for s in range(5)]
+
+def rotation_axis():      # impact_rotation (flow-aligned off vs on)
+    return [cfg(3, '[32,32]', 0)['name'], cfg(3, '[32,32]', 0, rotated=True)['name']]

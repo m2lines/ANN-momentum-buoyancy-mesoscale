@@ -32,7 +32,8 @@ def is_queued(name):
 
 def sbatch_cmd(c):
     # HIDDEN is positional (commas collide with --export); the rest via --export.
-    export = f"ALL,DEVICE=cuda,STENCIL={c['stencil_size']},SEED={c['seed']},PATH_SAVE=sensitivity/{c['name']}"
+    export = (f"ALL,DEVICE=cuda,STENCIL={c['stencil_size']},SEED={c['seed']},"
+              f"ROTATED={c.get('rotated', 0)},PATH_SAVE=sensitivity/{c['name']}")
     return ['sbatch', f'--export={export}', '-p', 'l40s_public', '--gres=gpu:1',
             f"--job-name=sens_{c['name']}", 'slurm_train_ann.sh', c['hidden_layers']]
 
