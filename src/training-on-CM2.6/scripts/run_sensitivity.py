@@ -23,6 +23,13 @@ def is_done(name):
     return all(os.path.exists(f'{d}/factor-{f}.nc') for f in (4, 9, 12, 15))
 
 
+def is_queued(name):
+    # already running/pending? (avoid duplicate submissions on re-run)
+    out = subprocess.run(['squeue', '-h', '-n', f'sens_{name}', '-o', '%i'],
+                         capture_output=True, text=True).stdout.strip()
+    return bool(out)
+
+
 def sbatch_cmd(c):
     # HIDDEN is positional (commas collide with --export); the rest via --export.
     export = f"ALL,DEVICE=cuda,STENCIL={c['stencil_size']},SEED={c['seed']},PATH_SAVE=sensitivity/{c['name']}"
@@ -41,6 +48,9 @@ if __name__ == '__main__':
         c = CONFIGS[name]
         if is_done(name):
             print('skip (done):', name)
+            continue
+        if is_queued(name):
+            print('skip (queued/running):', name)
             continue
         cmd = sbatch_cmd(c)
         print(' '.join(cmd))
