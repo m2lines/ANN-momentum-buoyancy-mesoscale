@@ -85,6 +85,23 @@ stencil 3×3 · hidden `[32,32]` · non-dim ON · rotation/symmetry OFF · 5 fea
 - **Phase 3** — input features + loss style (exploratory). Gated on plumbing.
 - **Phase 4** — synthesis figures → §3.3; update PLAN/INVENTORY; decide the canonical config.
 
+## Phase 1 results (2026-06-20) — DONE
+18 configs trained + scored on the test split; figures in
+`DB_notebooks/evaluate_model_design/{impact_stencil,impact_model_sizes,impact_random_seed}`.
+Headline = mean R²F over the 4 resolutions (depth-mean per factor, then averaged):
+
+- **Stencil** (hidden [32,32]): 1×1 = 0.55, **3×3 = 0.70**, 5×5 = 0.73. Big jump 1×1→3×3
+  (+0.15), small 3×3→5×5 (+0.03). **3×3 is the sweet spot** — matches Part 1.
+- **Capacity** (stencil 3×3, width): [16,16] = 0.66, **[32,32] = 0.70**, [48,48] = 0.72,
+  [64,64] = 0.73. Diminishing returns; **[32,32] sits slightly *under* the plateau** —
+  [48,48] (Part 1's choice) gives +0.017, [64,64] +0.026, and **test** R² rises (not
+  overfitting). Depth: 1 layer = 0.68, 2 = 0.70, 3 = 0.705 (3rd layer adds nothing).
+- **Seed** (baseline ×5): mean 0.7029, **std 0.0007** (range 0.002) — negligible, so all the
+  differences above are real and well above run-to-run noise.
+
+Decision surfaced for DB: **consider bumping the canonical hidden to [48,48]** (matches Part 1,
++~0.017 R² at negligible cost) vs keeping [32,32]. Stencil 3×3 confirmed; 5×5 optional (+0.03).
+
 ## Outputs
 - A figure set mirroring Part 1: R²/corr vs stencil, vs capacity, vs resolution; depth
   profiles; along/across maps/profiles — for §3.3.
