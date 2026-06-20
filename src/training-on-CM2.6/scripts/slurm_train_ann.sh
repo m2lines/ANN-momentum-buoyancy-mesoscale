@@ -18,8 +18,11 @@
 ###   sbatch --export=ALL,PATH_SAVE=EXP1,SEED=0 --job-name=train_EXP1 slurm_train_ann.sh
 ### Usage (GPU, ~18x faster step; pass a GPU partition + gres on the CLI):
 ###   sbatch --export=ALL,DEVICE=cuda,PATH_SAVE=EXP2,SEED=0 -p l40s_public --gres=gpu:1 \
-###          --job-name=train_EXP2 slurm_train_ann.sh
-HIDDEN="${HIDDEN:-[32,32]}"
+###          --job-name=train_EXP2 slurm_train_ann.sh "[32,32]"
+### HIDDEN is a positional arg (NOT --export: commas in "[32,32]" collide with --export's
+### comma separator); STENCIL/SEED/ITERS/DEVICE/PATH_SAVE via --export are fine.
+HIDDEN="${1:-[32,32]}"
+STENCIL="${STENCIL:-3}"
 ITERS="${ITERS:-500}"
 SEED="${SEED:-0}"
 PATH_SAVE="${PATH_SAVE:-EXP1}"
@@ -34,5 +37,5 @@ singularity exec $NVFLAG --overlay /scratch/$USER/Pavel_container.ext3:ro \
     /share/apps/images/cuda12.3.2-cudnn9.0.0-ubuntu-22.04.4.sif \
     /bin/bash -c "source /ext3/env.sh; \
         time python -u train_script_rho_fluxes.py \
-            --hidden_layers='$HIDDEN' --time_iters=$ITERS --seed=$SEED \
-            --device=$DEVICE --path_save=$PATH_SAVE"
+            --hidden_layers='$HIDDEN' --stencil_size=$STENCIL --time_iters=$ITERS \
+            --seed=$SEED --device=$DEVICE --path_save=$PATH_SAVE"

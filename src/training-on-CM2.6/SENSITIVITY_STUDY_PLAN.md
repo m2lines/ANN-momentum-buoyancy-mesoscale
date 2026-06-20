@@ -9,6 +9,24 @@ on the new dataset: coarse-grained CM2.6, 3-D, density (ρ) fluxes. Goals:
 
 Scope (agreed 2026-06-19): **full Part-1 replication** — all axes; all decisions in play.
 
+## Conventions (agreed 2026-06-19, mirroring Part 1's repo layout)
+- **Compute in `scripts/`** (heavy, slurm): `sensitivity_configs.py` is the single source of
+  truth (the config list); `run_sensitivity.py` is the regenerate-script that launches one
+  train+skill slurm job per config. (Part 1 trained in notebooks; here training is slurm
+  because CM2.6 is 130GB/GPU — everything *downstream* of the skill files is notebooks.)
+- **Figures in notebooks**, organized like Part 1's `evaluate_model_design/`: one subfolder
+  per axis under `DB_notebooks/evaluate_model_design/` (`impact_stencil/`, `impact_model_sizes/`,
+  `impact_nondim/`, `impact_rotation/`, `impact_more_inputs/`, `impact_loss_style/`,
+  `impact_random_seed/`), each with the eval/figure notebook for that axis.
+- **Paper figures** in `DB_notebooks/paper_figure_notebooks/`: minimal main-text offline figure
+  + appendix `FigureH*` sensitivity figures, one notebook per figure (Part 1 pattern).
+- **Shared code** stays in the existing `helpers/` (the Part-2 analog of Part 1's `modules/`).
+- **Artifacts: scratch-only + regenerate**. Models + skill netcdfs live at
+  `/scratch/$USER/mom6/CM26_ML_models/FGR3/sensitivity/<name>/`; `run_sensitivity.py`
+  regenerates them. Nothing large committed; notebooks read from scratch.
+- Human-readable throughout (Pavel's style): config list reads like a table, launcher is a
+  loop, notebooks are markdown + plot cells.
+
 Enabling context: training is now ~6 min/run on GPU and skill eval is batched (~minutes),
 so a 30–40-run sweep is a few GPU-hours, not days. `--seed` gives reproducibility. The
 float64 fix (`SGS_skill_rho`) makes the along/across metrics trustworthy.
