@@ -1571,7 +1571,7 @@ class StateFunctions():
         
         return {'Txx': Txx, 'Tyy': Tyy, 'Txy': Txy}
     
-    def ANN_rho_inference(self, ann=None, stencil_size = 3, return_xarray=False, device='cpu', rotated=False):
+    def ANN_rho_inference(self, ann=None, stencil_size = 3, return_xarray=False, device='cpu', rotated=False, return_features=False):
         if 'zl' in self.data.dims:
             print('Error: please select a single depth level')
             return
@@ -1645,7 +1645,18 @@ class StateFunctions():
         else:
             Fx_xarray = None
             Fy_xarray = None
-        return {'Fx': Fx, 'Fy': Fy, 'Fx_xarray': Fx_xarray, 'Fy_xarray': Fy_xarray}
+        out = {'Fx': Fx, 'Fy': Fy, 'Fx_xarray': Fx_xarray, 'Fy_xarray': Fy_xarray}
+        if return_features:
+            # The (normalized) 45-dim input the ANN actually sees, plus the per-point
+            # dimensional scales (rho_norm * gradv_norm * wet * delta_x**2 redimensionalizes
+            # the network output to Fx, Fy). For the predictability-ceiling study: the network
+            # regresses input_features -> normalized target, and Fx/Fy = output * scale. No
+            # compute changes above -- these are intermediates, so the returned Fx/Fy are unchanged.
+            out['input_features'] = input_features
+            out['rho_norm'] = rho_norm
+            out['gradv_norm'] = gradv_norm
+            out['cell'] = (wet * delta_x**2).reshape(-1, 1)   # scale = rho_norm*gradv_norm*cell
+        return out
 
     def KE_Arakawa(self):
         '''
