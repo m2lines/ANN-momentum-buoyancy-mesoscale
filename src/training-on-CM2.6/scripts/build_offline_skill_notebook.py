@@ -40,8 +40,9 @@ zl = sk[FACTORS[0]]['zl'].values
 # skill[metric] = (factor, depth); missing metric (e.g. div before recompute) -> NaN placeholder
 def getm(fa, name):
     return sk[fa][name].values if name in sk[fa] else np.full(len(zl), np.nan)
-R2 = {m: np.array([getm(fa, f'R2F_{m}') for fa in FACTORS]) for m in METRICS}
-CO = {m: np.array([getm(fa, f'corr_F_{m}') for fa in FACTORS]) for m in METRICS}
+# coast-excluded (>=2 cells from coast, per-depth) variants -- matches Perezhogin et al. convention
+R2 = {m: np.array([getm(fa, f'R2F_{m}_away') for fa in FACTORS]) for m in METRICS}
+CO = {m: np.array([getm(fa, f'corr_F_{m}_away') for fa in FACTORS]) for m in METRICS}
 d = sk[MAP_FA]; pm = xr.open_dataset(f'{PARAM}/factor-{MAP_FA}/param.nc'); grid = create_grid(pm)
 lon, lat = pm['geolon'].values, pm['geolat'].values
 k = int(np.argmin(np.abs(zl - MAP_DEPTH)))

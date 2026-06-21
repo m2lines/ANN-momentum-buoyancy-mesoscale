@@ -771,6 +771,15 @@ class DatasetCM26():
         skill['R2F_div_away'] = 1 - M2(errd, mask=wet2) / M2(dF, mask=wet2)
         skill['corr_F_div']   = M2(dF, dF_p, centered=True) / np.sqrt(M2(dF, centered=True) * M2(dF_p, centered=True))
 
+        # Coast-excluded (>=2 cells from coast, per-depth wet2) correlations -- matches the
+        # convention Perezhogin et al. (2025) use for their reported R2/correlation.
+        def corr_away(a, b):
+            return M2(a, b, centered=True, mask=wet2) / np.sqrt(M2(a, centered=True, mask=wet2) * M2(b, centered=True, mask=wet2))
+        skill['corr_F_away']        = 0.5 * (corr_away(Fx, Fx_pred) + corr_away(Fy, Fy_pred))
+        skill['corr_F_along_away']  = corr_away(Fa, Fa_p)
+        skill['corr_F_across_away'] = corr_away(Fr, Fr_p)
+        skill['corr_F_div_away']    = corr_away(dF, dF_p)
+
         # Snapshots for plotting / scatter
         skill['Fx'] = Fx.isel(time=0)
         skill['Fy'] = Fy.isel(time=0)
