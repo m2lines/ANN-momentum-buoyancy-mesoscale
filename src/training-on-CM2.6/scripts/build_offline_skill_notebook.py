@@ -25,7 +25,7 @@ import matplotlib.patheffects as pe
 import cmocean
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-from helpers.cm26 import create_grid
+from helpers.cm26 import create_grid, propagate_mask
 
 # fp64 test-skill files WITH the divergence metric (skill-test-rho-div: adds R2F_div/corr_F_div
 # to the along/across/combined skills; also stores the snapshot fields for the maps).
@@ -46,7 +46,10 @@ CO = {m: np.array([getm(fa, f'corr_F_{m}_away') for fa in FACTORS]) for m in MET
 d = sk[MAP_FA]; pm = xr.open_dataset(f'{PARAM}/factor-{MAP_FA}/param.nc'); grid = create_grid(pm)
 lon, lat = pm['geolon'].values, pm['geolat'].values
 k = int(np.argmin(np.abs(zl - MAP_DEPTH)))
-wet2d = (pm.wet.isel(zl=k) if 'zl' in pm.wet.dims else pm.wet)"""
+# Mask the divergence maps >=2 cells from the coast (same per-depth wet2 as the skill metric):
+# the flux-form divergence is contaminated within 1 cell of the coast by the fillna(0) land BC.
+_wlev = pm.wet.isel(zl=k) if 'zl' in pm.wet.dims else pm.wet
+wet2d = xr.where(propagate_mask(_wlev, grid, niter=2) < 0.5, np.nan, 1.)"""
 
 DIV = """# metric-correct C-grid flux-form divergence of a T-point horizontal flux (xgcm grid)
 def divergence(Fx, Fy):
