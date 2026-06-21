@@ -754,6 +754,23 @@ class DatasetCM26():
         skill['corr_F_along']  = M2(Fa, Fa_p, centered=True) / np.sqrt(M2(Fa, centered=True) * M2(Fa_p, centered=True))
         skill['corr_F_across'] = M2(Fr, Fr_p, centered=True) / np.sqrt(M2(Fr, centered=True) * M2(Fr_p, centered=True))
 
+        # Skill of the horizontal flux DIVERGENCE -- the actual forcing felt by the resolved
+        # buoyancy. Metric-correct C-grid flux form via the xgcm grid:
+        # div(F) = [dX(interp_X(Fx) dyCu) + dY(interp_Y(Fy) dxCv)] / (dxT dyT). Derivatives
+        # amplify small scales, so div skill is expectedly lower than the flux-component skill.
+        grid = self.grid
+
+        def divh(fx, fy):
+            div = (grid.diff(grid.interp(fx.fillna(0.), 'X') * self.param.dyCu, 'X')
+                   + grid.diff(grid.interp(fy.fillna(0.), 'Y') * self.param.dxCv, 'Y')) \
+                / (self.param.dxT * self.param.dyT)
+            return div.where(self.param.wet > 0.5)
+        dF, dF_p = divh(Fx, Fy), divh(Fx_pred, Fy_pred)
+        errd = dF - dF_p
+        skill['R2F_div']      = 1 - M2(errd) / M2(dF)
+        skill['R2F_div_away'] = 1 - M2(errd, mask=wet2) / M2(dF, mask=wet2)
+        skill['corr_F_div']   = M2(dF, dF_p, centered=True) / np.sqrt(M2(dF, centered=True) * M2(dF_p, centered=True))
+
         # Snapshots for plotting / scatter
         skill['Fx'] = Fx.isel(time=0)
         skill['Fy'] = Fy.isel(time=0)

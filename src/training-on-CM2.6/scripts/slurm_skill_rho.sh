@@ -27,4 +27,4 @@ cd /home/db194/ANN-momentum-buoyancy-mesoscale/src/training-on-CM2.6/scripts
 
 singularity exec $NVFLAG --overlay /scratch/$USER/Pavel_container.ext3:ro \
     /share/apps/images/cuda12.3.2-cudnn9.0.0-ubuntu-22.04.4.sif \
-    /bin/bash -c "export FACTORS='$FACTORS' SPLIT='$SPLIT' NTIME='$NTIME' DEVICE='$DEVICE'; source /ext3/env.sh; time python -u compute_skill_rho.py"
+    /bin/bash -c "export FACTORS='$FACTORS' SPLIT='$SPLIT' NTIME='$NTIME' DEVICE='$DEVICE' ${SKILL_OUT:+SKILL_OUT='$SKILL_OUT'}; source /ext3/env.sh; time python -u compute_skill_rho.py"
