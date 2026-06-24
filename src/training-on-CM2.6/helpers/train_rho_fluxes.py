@@ -20,6 +20,19 @@ def get_rho_fluxes(batch, device='cpu'):
 
     return Fx, Fy, F_norm
 
+def torch_flux_div(Fx, Fy, dyCu, dxCv, inv_area, wet):
+    """Differentiable C-grid flux-form divergence of a vector flux at cell centres, the
+    buoyancy analog of the momentum stress divergence (ZB20u/v): interp the flux to the
+    cell faces, difference, divide by area. Periodic in X; the Y edges wrap but are masked
+    by wet (the polar fold is dropped upstream). Fx,Fy at centre; dyCu at the u-face,
+    dxCv at the v-face; inv_area = 1/(dxT*dyT)."""
+    Fx = torch.nan_to_num(Fx); Fy = torch.nan_to_num(Fy)
+    flux_x = 0.5 * (Fx + torch.roll(Fx, -1, dims=-1)) * dyCu      # east-face (xq) flux, periodic X
+    flux_y = 0.5 * (Fy + torch.roll(Fy, -1, dims=-2)) * dxCv      # north-face (yq) flux
+    div = ((flux_x - torch.roll(flux_x, 1, dims=-1))
+           + (flux_y - torch.roll(flux_y, 1, dims=-2))) * inv_area
+    return div * wet
+
 def drop_polar_fold(batch):
     # Drop the two northernmost rows near the Polar Fold, where fluxes and
     # B.C. are not well defined (cf. fetch_data in train_ann_fluxes).
@@ -39,7 +52,8 @@ def train_ANN_rho_fluxes(factors=[9],
               validate_every=10,
               device='cpu',
               rotated=False,
-              loss='mse'):
+              loss='mse',
+              rho_grad_source='prod'):
     '''
     time_iters is the number of time snaphots
     randomly sampled for each factor and depth
@@ -65,10 +79,26 @@ def train_ANN_rho_fluxes(factors=[9],
     # That needs remapping the loop's `depth` index (currently the raw zl position)
     # to a position within the subset; left as full-depth here for index simplicity.
     load_vars = ['Fx', 'Fy', 'rhox', 'rhoy', 'sh_xx', 'sh_xy_h', 'rel_vort_h', 'delta_x']
+    # Pilot: optionally swap the density-gradient INPUT (rhox/rhoy) for a different "kind" --
+    # 'sigma0c' (sigma0 from coarse T/S) or 'neutral' (local interface pressure, the online
+    # analog). The variant fields live in factor-{f}-rhokinds (append_rho_kinds.py); same grid
+    # and snapshots, so we positionally overwrite rhox/rhoy. 'prod' (default) leaves the
+    # existing coarse-grained-sigma0 gradient untouched. The Fx/Fy target is unchanged.
+    rk_vars = {'sigma0c': ('rhox_sigma0c', 'rhoy_sigma0c'),
+               'neutral': ('rhox_neutral', 'rhoy_neutral')}
+    root = os.path.expandvars(os.environ.get('CM26_DATA_ROOT', '/scratch/$USER/CM26_datasets/ocean3d'))
     for key in ['train', 'validate']:
         for factor in factors:
             d = dataset[f'{key}-{factor}']
-            dataset[f'{key}-{factor}'] = DatasetCM26(d.data[load_vars].load(), d.param)
+            data = d.data[load_vars].load()
+            if rho_grad_source != 'prod':
+                gx, gy = rk_vars[rho_grad_source]
+                rk = xr.open_mfdataset(f'{root}/{subfilter}/FGR{FGR}/factor-{factor}-rhokinds/{key}-*.nc',
+                                       combine='nested', concat_dim='time').sortby('time')[[gx, gy]].load()
+                assert rk.sizes['time'] == data.sizes['time'], f'{key}-{factor}: rho-kinds time mismatch'
+                data['rhox'] = (data['rhox'].dims, rk[gx].transpose(*data['rhox'].dims).values)
+                data['rhoy'] = (data['rhoy'].dims, rk[gy].transpose(*data['rhoy'].dims).values)
+            dataset[f'{key}-{factor}'] = DatasetCM26(data, d.param)
 
     ########## Init logger ###########
     logger = xr.Dataset()
@@ -113,6 +143,26 @@ def train_ANN_rho_fluxes(factors=[9],
             return (torch.abs(ax - fx) + torch.abs(ay - fy)).mean()
         return ((ax - fx)**2 + (ay - fy)**2).mean()
 
+    # loss=='div' trains the predicted flux against the (per-slice normalized) DIVERGENCE of the
+    # true flux -- the buoyancy analog of Perezhogin's momentum forcing loss. NOTE (see PLAN.md):
+    # our online scheme applies the Ferrari streamfunction built from the flux, not the flux
+    # divergence, so this is a comparison model, not necessarily the right objective for buoyancy.
+    def compute_loss(batch, prediction):
+        if loss == 'div':
+            Fxt = tensor_from_xarray(batch.data.Fx).to(device)
+            Fyt = tensor_from_xarray(batch.data.Fy).to(device)
+            dyCu = tensor_from_xarray(batch.param.dyCu).to(device)
+            dxCv = tensor_from_xarray(batch.param.dxCv).to(device)
+            inv_area = (1. / tensor_from_xarray(batch.param.dxT * batch.param.dyT)).to(device)
+            wet = tensor_from_xarray(batch.param.wet).to(device)
+            dT = torch_flux_div(Fxt, Fyt, dyCu, dxCv, inv_area, wet)
+            dP = torch_flux_div(prediction['Fx'], prediction['Fy'], dyCu, dxCv, inv_area, wet)
+            n = wet.sum().clamp(min=1)
+            ms_true = (dT ** 2 * wet).sum() / n                      # per-slice mean-square true div
+            return ((dP - dT) ** 2 * wet).sum() / (n * ms_true.clamp(min=1e-30))
+        Fx, Fy, F_norm = get_rho_fluxes(batch, device=device)
+        return loss_fn(prediction['Fx'] * F_norm, prediction['Fy'] * F_norm, Fx, Fy)
+
     t_s = time()
     for time_iter in range(time_iters):
         t_e = time()
@@ -129,13 +179,9 @@ def train_ANN_rho_fluxes(factors=[9],
             batch = drop_polar_fold(dataset[f'train-{factor}'].select2d(zl=depth))
 
             ############## Training step ###############
-            Fx, Fy, F_norm = get_rho_fluxes(batch, device=device)
-
             optimizer.zero_grad()
             prediction = batch.state.ANN_rho_inference(ann_instance, stencil_size=stencil_size, device=device, rotated=rotated)
-            ANNx = prediction['Fx'] * F_norm
-            ANNy = prediction['Fy'] * F_norm
-            MSE_train = loss_fn(ANNx, ANNy, Fx, Fy)
+            MSE_train = compute_loss(batch, prediction)
 
             MSE_train.backward()
             optimizer.step()
@@ -151,14 +197,9 @@ def train_ANN_rho_fluxes(factors=[9],
             if do_validate:
                 batch = drop_polar_fold(dataset[f'validate-{factor}'].select2d(zl=depth))
 
-                Fx, Fy, F_norm = get_rho_fluxes(batch, device=device)
-
                 with torch.no_grad():
                     prediction = batch.state.ANN_rho_inference(ann_instance, stencil_size=stencil_size, device=device, rotated=rotated)
-
-                ANNx = prediction['Fx'] * F_norm
-                ANNy = prediction['Fy'] * F_norm
-                MSE_validate = float(loss_fn(ANNx, ANNy, Fx, Fy).data)
+                    MSE_validate = float(compute_loss(batch, prediction).data)
                 logger['MSE_validate'].loc[{'iter': time_iter, 'factor': factor, 'depth': depth}] = MSE_validate
 
                 del batch

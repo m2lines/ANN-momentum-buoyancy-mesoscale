@@ -45,6 +45,9 @@ if __name__ == '__main__':
                         help="training loss on the normalized flux: 'mse' (default) or 'mae' (Part 1).")
 
     parser.add_argument('--path_save', type=str, default='EXP0')
+    parser.add_argument('--rho_grad_source', type=str, default='prod',
+                        help="density-gradient input kind: prod (coarse-grained sigma0) | "
+                             "sigma0c (sigma0 from coarse T/S) | neutral (local-pressure, online analog)")
 
     args = parser.parse_args()
 
@@ -82,7 +85,8 @@ if __name__ == '__main__':
                   args.validate_every,
                   args.device,
                   bool(args.rotated),
-                  args.loss
+                  args.loss,
+                  args.rho_grad_source
                   )
 
     # Export on CPU (export_ANN reads weights as numpy), then run the offline test on

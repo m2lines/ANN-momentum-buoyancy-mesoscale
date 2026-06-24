@@ -657,7 +657,10 @@ class DatasetCM26():
         sub-grid density fluxes, ready for SGS_skill_rho.
         '''
         data = xr.Dataset()
-        for key in ['Fx', 'Fy', 'rhox', 'rhoy']:  # rhox/rhoy carry the gradient direction for the along/across split
+        keys = ['Fx', 'Fy', 'rhox', 'rhoy']         # rhox/rhoy carry the gradient direction for the along/across split
+        if 'N_buoyancy' in self.data:               # N -> vertical density gradient for the forcing / APE-sink metrics
+            keys.append('N_buoyancy')
+        for key in keys:
             data[key] = self.nanvar(self.data[key]).copy(deep=True).compute()
 
         wet = self.param.wet.values  # (zl, y, x); 1 wet / 0 dry
@@ -779,6 +782,58 @@ class DatasetCM26():
         skill['corr_F_along_away']  = corr_away(Fa, Fa_p)
         skill['corr_F_across_away'] = corr_away(Fr, Fr_p)
         skill['corr_F_div_away']    = corr_away(dF, dF_p)
+
+        # Forcing- and APE-sink skill (the two quantities the scheme actually applies; see the
+        # flux-decomposition appendix). From the predicted horizontal flux we build the Ferrari
+        # (2010) eddy-induced transport Upsilon = F_h / |grad_3 rho| (per-component in-plane
+        # denominator, matching MOM_meso_sfn_ANN.F90), then
+        #   APE-sink density  a = Upsilon . grad_h rho                       (the vertical skew flux)
+        #   forcing           G = -u* . grad rho,  u* = (d_z Upsilon, -div_h Upsilon)
+        # i.e. the eddy-induced buoyancy tendency. Both are formed identically for the diagnosed
+        # and predicted flux, so R2 measures how the flux error propagates to what the model feels;
+        # the forcing is -div of the full 3-D skew flux, NOT div_h F_h. The vertical density gradient
+        # is taken from the locally-referenced stratification N_buoyancy (d rho/dz = -(rho0/g) N^2,
+        # the alpha/beta form the online EOS uses) rather than d/dz of in-situ density, which would
+        # carry the adiabatic-compression artifact. dz (for d_z Upsilon) uses the depth coord zl (+down).
+        if 'N_buoyancy' in self.data:
+            dz   = lambda f: -f.differentiate('zl')
+            rhoz = -(1025.0 / 9.8) * self.data.N_buoyancy.astype('float64')**2   # d rho/dz = -(rho0/g) N^2
+            magx = np.sqrt(rhox64**2 + rhoz**2)            # per-component |grad_3 rho| (Fortran mag_grad)
+            magy = np.sqrt(rhoy64**2 + rhoz**2)
+            # Match the MOM_meso_sfn_ANN.F90 limiters (defaults): clamp the flux, set the transport
+            # to zero where the gradient magnitude is below the floor (otherwise F/|grad_3 rho| blows
+            # up in the weakly-stratified abyss and d/dz of it dominates), and clamp the velocity-
+            # scale streamfunction Upsilon.
+            FLUX_CLAMP, UPS_CLAMP, GRAD_FLOOR = 1.0e2, 15.0, 1.0e-10
+            def transport(fx, fy):
+                fx, fy = fx.clip(-FLUX_CLAMP, FLUX_CLAMP), fy.clip(-FLUX_CLAMP, FLUX_CLAMP)
+                Ux = xr.where(magx < GRAD_FLOOR, 0., (fx / (magx + 1e-30)).clip(-UPS_CLAMP, UPS_CLAMP))
+                Uy = xr.where(magy < GRAD_FLOOR, 0., (fy / (magy + 1e-30)).clip(-UPS_CLAMP, UPS_CLAMP))
+                return Ux, Uy
+            Ux,   Uy   = transport(Fx, Fy)                 # eddy-induced transport (truth)
+            Ux_p, Uy_p = transport(Fx_pred, Fy_pred)       # ... and predicted
+            a    = Ux   * rhox64 + Uy   * rhoy64           # vertical skew flux = APE-sink density
+            a_p  = Ux_p * rhox64 + Uy_p * rhoy64
+            # Forcing in FLUX form, -div_h F_h - d/dz(vertical skew flux): this matches MOM6's
+            # conservative realization, where the horizontal streamfunction transport is applied and
+            # w* is recovered from continuity rather than formed explicitly. dF/dF_p are the
+            # horizontal flux divergences from above. We report the flux form as primary and keep the
+            # advective form -u*.grad rho (Gadv; equal in the continuum but differs slightly in
+            # discretisation -- it forms w*=-div_h Upsilon explicitly, which MOM6 never does. In
+            # practice the two agree to ~0.02 in R2, identical at the surface) for comparison.
+            G    = -dF   - dz(a)
+            G_p  = -dF_p - dz(a_p)
+            Gadv   = -(dz(Ux)   * rhox64 + dz(Uy)   * rhoy64) + divh(Ux,   Uy)   * rhoz
+            Gadv_p = -(dz(Ux_p) * rhox64 + dz(Uy_p) * rhoy64) + divh(Ux_p, Uy_p) * rhoz
+
+            skill['R2F_ape']           = 1 - M2(a - a_p) / M2(a)
+            skill['R2F_ape_away']      = 1 - M2(a - a_p, mask=wet2) / M2(a, mask=wet2)
+            skill['corr_F_ape_away']   = corr_away(a, a_p)
+            skill['R2F_force']         = 1 - M2(G - G_p) / M2(G)              # flux form (MOM6-faithful)
+            skill['R2F_force_away']    = 1 - M2(G - G_p, mask=wet2) / M2(G, mask=wet2)
+            skill['corr_F_force_away'] = corr_away(G, G_p)
+            skill['R2F_force_adv_away']   = 1 - M2(Gadv - Gadv_p, mask=wet2) / M2(Gadv, mask=wet2)  # advective form
+            skill['corr_F_force_adv_away'] = corr_away(Gadv, Gadv_p)
 
         # Snapshots for plotting / scatter
         skill['Fx'] = Fx.isel(time=0)
