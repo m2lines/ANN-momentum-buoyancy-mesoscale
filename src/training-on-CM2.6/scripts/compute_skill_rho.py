@@ -22,6 +22,9 @@ NTIME = int(os.environ.get('NTIME', '0'))
 # batched forward per depth, so the GPU is well-fed -- ~10x vs CPU (unlike the old
 # per-slice path, where GPU gave ~1.2x). 'cpu' (default) stays correct everywhere.
 DEVICE = os.environ.get('DEVICE', 'cpu')
+# SUBFILTER selects the dataset family: 'subfilter' (sigma0) or 'subfilter-neutral' --
+# the model must be scored on the data it was trained in (neutral for EXP_neutral_all4).
+SUBFILTER = os.environ.get('SUBFILTER', 'subfilter')
 OUT = os.environ.get('SKILL_OUT', f'/scratch/db194/CM26_ML_models/FGR3/EXP0/skill-{SPLIT}-rho')
 os.makedirs(OUT, exist_ok=True)
 
@@ -30,7 +33,7 @@ os.makedirs(OUT, exist_ok=True)
 LOAD_VARS = ['Fx', 'Fy', 'rhox', 'rhoy', 'sh_xx', 'sh_xy_h', 'rel_vort_h', 'delta_x']
 
 ann = import_ANN(ANN_PATH).to(DEVICE)
-ds = read_datasets([SPLIT], FACTORS)
+ds = read_datasets([SPLIT], FACTORS, subfilter=SUBFILTER)
 for f in FACTORS:
     d = ds[f'{SPLIT}-{f}']
     data = d.data[LOAD_VARS]
