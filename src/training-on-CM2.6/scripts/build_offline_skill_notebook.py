@@ -5,9 +5,10 @@ Pavel_Container kernel) -- the reproducible figure source in the style of Pavel'
 notebooks/Figure-1.ipynb -- and runs the cell code headless to drop offline_skill.pdf
 (the container lacks nbformat, so we emit JSON + exec). Run in the Pavel container.
 
-Figure: (a) global Robinson maps of div(F^rho) diagnosed vs ANN; (b) Gulf-Stream zoom of the
-along/across-gradient flux (diagnosed vs ANN); (c) GROUPED heatmaps -- each coarse-grid spacing
-is a box of three sub-bins (along | across | div skill) over depth, for R^2 and correlation.
+Figure: (a) global Robinson maps of the applied forcing G = -u*.grad rho, diagnosed vs ANN;
+(b) Gulf-Stream zoom of the along/across-gradient flux (diagnosed vs ANN); (c) GROUPED heatmaps --
+each coarse-grid spacing is a box of four sub-bins (along | across | forcing | APE release) over
+depth, for R^2 and correlation. div_h F is deliberately not shown: it is not what the model feels.
 """
 import os
 import json
@@ -27,13 +28,17 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from helpers.cm26 import create_grid, propagate_mask
 
-# fp64 test-skill files WITH the divergence metric (skill-test-rho-div: adds R2F_div/corr_F_div
-# to the along/across/combined skills; also stores the snapshot fields for the maps).
-ROOT  = os.path.expandvars(os.environ.get('SKILL_ROOT', '/scratch/$USER/CM26_ML_models/FGR3/EXP0/skill-test-rho-div'))
-PARAM = os.path.expandvars('/scratch/$USER/CM26_datasets/ocean3d/subfilter/FGR3')
+# fp64 test-skill files from skill-test-forceape: these carry the two metrics the scheme actually
+# applies -- the forcing G = -u*.grad rho and the APE-sink a = Upsilon.grad_h rho -- alongside the
+# flux skills, plus the snapshot fields (incl. the G/G_pred maps) the figure draws.
+ROOT  = os.path.expandvars(os.environ.get('SKILL_ROOT', '/scratch/$USER/mom6/CM26_ML_models/FGR3/EXP_neutral_all4/skill-test-forceape'))
+PARAM = os.path.expandvars('/scratch/$USER/CM26_datasets/ocean3d/subfilter-neutral/FGR3')
 FACTORS = [4, 9, 12, 15]; SPACING = [0.4, 0.9, 1.2, 1.5]
 MAP_FA = 9; MAP_DEPTH = 500.0; GS_BOX = (-80, -45, 30, 48)   # Gulf Stream lon/lon/lat/lat
-METRICS = ['along', 'across', 'div']; ABBR = {'along': 'al', 'across': 'ac', 'div': 'dv'}"""
+# div_h F is deliberately NOT shown: the Ferrari division by |grad_3 rho| precedes the derivative,
+# so it is not the quantity the model feels (see the flux-decomposition appendix).
+METRICS = ['along', 'across', 'force', 'ape']
+ABBR = {'along': 'al', 'across': 'ac', 'force': 'fc', 'ape': 'pe'}"""
 
 LOAD = """sk = {fa: xr.open_dataset(f'{ROOT}/factor-{fa}.nc') for fa in FACTORS}
 zl = sk[FACTORS[0]]['zl'].values
@@ -46,38 +51,55 @@ CO = {m: np.array([getm(fa, f'corr_F_{m}_away') for fa in FACTORS]) for m in MET
 d = sk[MAP_FA]; pm = xr.open_dataset(f'{PARAM}/factor-{MAP_FA}/param.nc'); grid = create_grid(pm)
 lon, lat = pm['geolon'].values, pm['geolat'].values
 k = int(np.argmin(np.abs(zl - MAP_DEPTH)))
-# Mask the divergence maps >=2 cells from the coast (same per-depth wet2 as the skill metric):
-# the flux-form divergence is contaminated within 1 cell of the coast by the fillna(0) land BC.
+# Mask the forcing maps >=2 cells from the coast (same per-depth wet2 as the skill metric):
+# G carries horizontal and vertical derivatives, so it is contaminated within 1 cell of the coast
+# by the fillna(0) land BC.
 _wlev = pm.wet.isel(zl=k) if 'zl' in pm.wet.dims else pm.wet
 wet2d = xr.where(propagate_mask(_wlev, grid, niter=2) < 0.5, np.nan, 1.)"""
 
-DIV = """# metric-correct C-grid flux-form divergence of a T-point horizontal flux (xgcm grid)
-def divergence(Fx, Fy):
-    fx = xr.DataArray(Fx.astype('float64'), dims=['yh', 'xh'], coords={'yh': pm.yh, 'xh': pm.xh}).fillna(0.)
-    fy = xr.DataArray(Fy.astype('float64'), dims=['yh', 'xh'], coords={'yh': pm.yh, 'xh': pm.xh}).fillna(0.)
-    div = (grid.diff(grid.interp(fx, 'X') * pm.dyCu, 'X')
-           + grid.diff(grid.interp(fy, 'Y') * pm.dxCv, 'Y')) / (pm.dxT * pm.dyT)
-    return xr.where(wet2d > 0.5, div, np.nan).values
+FORCE = """# The forcing the scheme applies, G = -u*.grad rho, taken straight from the snapshot that
+# SGS_skill_rho stores: Upsilon = F_h/|grad_3 rho| with the MOM_meso_sfn_ANN.F90 limiters, then the
+# flux form G = -div_h F_h - d/dz(Upsilon.grad_h rho). Reading it rather than rebuilding it here
+# guarantees the map and the R^2 heatmap come from the same operator.
+wet_np = np.asarray(wet2d)
+def masked(f):
+    return np.where(wet_np > 0.5, f, np.nan)      # NaN in wet2d compares False -> masked
 
-divT = divergence(d['Fx'].isel(zl=k).values, d['Fy'].isel(zl=k).values)
-divP = divergence(d['Fx_pred'].isel(zl=k).values, d['Fy_pred'].isel(zl=k).values)
+GT = masked(d['G'].isel(zl=k).values)
+GP = masked(d['G_pred'].isel(zl=k).values)
 
 # The CM2.6 grid is TRIPOLAR (its geolon is discontinuous near the Arctic), which breaks cartopy
-# pcolormesh and blanks the NH. Regrid the curvilinear field to a regular 1-deg lon/lat grid for
-# plotting -- robust, and the cartopy LAND feature (drawn on top) hides interpolation over land.
+# pcolormesh and blanks the NH. Regrid the curvilinear field to a regular 1-deg lon/lat grid.
+#
+# The nearest-neighbour fill below patches the gaps the linear interpolation leaves, but on its own
+# it FABRICATES data: interior holes -- shallow and marginal seas that lie below the seafloor at this
+# level, and the 2-cell coastal exclusion band -- get filled by extrapolating from whatever wet point
+# happens to be nearest, and they are not hidden by the cartopy LAND feature the way continents are.
+# Measured on the R^2 maps, that put fabricated values in >50% of the cells drawn at the low end of
+# the scale, in exactly the shallow regions. So blank anything farther than 1.5 source cells from a
+# real point. Distance is taken with longitude scaled by cos(lat), otherwise the threshold is far too
+# permissive at high latitude.
 from scipy.interpolate import griddata
-lon2 = ((lon + 180) % 360) - 180
+from scipy.spatial import cKDTree
 loni = np.arange(-179.5, 180., 1.0); lati = np.arange(-78.5, 89.5, 1.0)
 LO, LA = np.meshgrid(loni, lati)
-def regrid(f):
+QXY = np.column_stack([LO.ravel() * np.cos(np.deg2rad(LA.ravel())), LA.ravel()])
+
+def regrid_ll(f, glon, glat, dx_deg):
     ok = np.isfinite(f)
-    pts, val = np.column_stack([lon2[ok], lat[ok]]), f[ok]
+    pts = np.column_stack([((glon[ok] + 180) % 360) - 180, glat[ok]]); val = f[ok]
     # pad periodically in lon so the interpolation wraps cleanly across +/-180
     pts = np.vstack([pts, pts + [360, 0], pts - [360, 0]]); val = np.concatenate([val, val, val])
     lin = griddata(pts, val, (LO, LA), method='linear')
-    nn = griddata(pts, val, (LO, LA), method='nearest')   # fill convex-hull gaps
-    return np.where(np.isfinite(lin), lin, nn)
-divT_r, divP_r = regrid(divT), regrid(divP)"""
+    nn = griddata(pts, val, (LO, LA), method='nearest')
+    out = np.where(np.isfinite(lin), lin, nn)
+    pxy = np.column_stack([pts[:, 0] * np.cos(np.deg2rad(pts[:, 1])), pts[:, 1]])
+    dist, _ = cKDTree(pxy).query(QXY)
+    return np.where(dist.reshape(LO.shape) <= 1.5 * dx_deg, out, np.nan)
+
+DX_MAP = SPACING[FACTORS.index(MAP_FA)]
+GT_r = regrid_ll(GT, lon, lat, DX_MAP)
+GP_r = regrid_ll(GP, lon, lat, DX_MAP)"""
 
 PLOT = """bal = cmocean.cm.balance.copy(); bal.set_bad('white')   # data gaps (shelves below seafloor) -> white
 plt.rcParams.update({'font.size': 11})
@@ -93,12 +115,12 @@ def land(ax):     # clean grey continents on top of the data; coastline outline
     ax.add_feature(cfeature.LAND, facecolor='0.8', edgecolor='none', zorder=3)
     ax.coastlines(lw=0.3, zorder=4)
 
-# (a) global divergence maps STACKED: diagnosed (top) / ANN (bottom).
-# Use a low (85th-pct) colour limit so the faint open-ocean divergence shows colour rather than
-# washing out to white -- |div| is intermittent (strong only in jets), so a high limit leaves
-# most of the ocean near-white.
-vmax = np.nanpercentile(np.abs(divT_r), 93); axs = []   # relaxed range (less saturated)
-for r, (arr, ttl) in enumerate([(divT_r, 'diagnosed (CM2.6)'), (divP_r, 'ANN')]):
+# (a) global forcing maps STACKED: diagnosed (top) / ANN (bottom).
+# Use a low colour limit so the faint open-ocean forcing shows colour rather than washing out to
+# white -- |G| is intermittent (strong only in jets), so a high limit leaves most of the ocean
+# near-white.
+vmax = np.nanpercentile(np.abs(GT_r), 93); axs = []   # relaxed range (less saturated)
+for r, (arr, ttl) in enumerate([(GT_r, 'diagnosed (CM2.6)'), (GP_r, 'ANN')]):
     ax = fig.add_subplot(gmap[r], projection=proj); axs.append(ax)
     im = ax.pcolormesh(loni, lati, arr, cmap=bal, vmin=-vmax, vmax=vmax, zorder=1,
                        transform=ccrs.PlateCarree(), rasterized=True)
@@ -107,7 +129,7 @@ for r, (arr, ttl) in enumerate([(divT_r, 'diagnosed (CM2.6)'), (divP_r, 'ANN')])
             [GS_BOX[2], GS_BOX[2], GS_BOX[3], GS_BOX[3], GS_BOX[2]], 'k-', lw=0.8, zorder=5,
             transform=ccrs.PlateCarree())
 fig.colorbar(im, ax=axs, orientation='vertical', shrink=0.85, pad=0.02,
-             label=r'$\\nabla_h\\!\\cdot\\!\\mathbf{F}^\\rho_h$ at %.0f m, $\\Delta=%.1f^\\circ$' % (zl[k], SPACING[FACTORS.index(MAP_FA)]))
+             label=r'$G=-\\mathbf{u}^*\\!\\cdot\\!\\nabla\\rho$ at %.0f m, $\\Delta=%.1f^\\circ$' % (zl[k], SPACING[FACTORS.index(MAP_FA)]))
 
 # (b) Gulf-Stream zoom: along / across, diagnosed | ANN. Regrid the curvilinear box to a
 # regular grid (cartopy can't draw the native grid) then plot on PlateCarree with coastlines.
@@ -135,7 +157,7 @@ for r, comp in enumerate(['along', 'across']):
                     bbox=dict(fc='w', ec='none', alpha=0.7))
     fig.colorbar(im2, ax=row_axes, fraction=0.046, pad=0.02)
 
-# (c) grouped heatmaps along the BOTTOM (wide): per scale a box of 3 sub-bins along|across|div
+# (c) grouped heatmaps along the BOTTOM (wide): per scale a box of 4 sub-bins along|across|force|ape
 ze = np.concatenate([[0], 0.5 * (zl[1:] + zl[:-1]), [zl[-1] + (zl[-1] - zl[-2]) / 2]])
 GAP = 0.8
 def grouped(ax, M, label, vmin, cmap):
@@ -151,8 +173,8 @@ def grouped(ax, M, label, vmin, cmap):
         if i < len(FACTORS) - 1:
             ax.axvline(x - GAP / 2, color='k', lw=0.6)
     ax.set_xlim(-0.7, x - GAP + 0.7); ax.set_ylim(ze[-1], ze[0])
-    ax.set_xticks(xc); ax.set_xticklabels(tlab, fontsize=8)              # al/ac/dv along the bottom
-    ax.set_xlabel(r'al = along-$\\nabla\\rho$,   ac = across-$\\nabla\\rho$,   dv = horiz. divergence', fontsize=9)
+    ax.set_xticks(xc); ax.set_xticklabels(tlab, fontsize=8)              # al/ac/fc/pe along the bottom
+    ax.set_xlabel(r'al = along-$\\nabla\\rho$,   ac = across-$\\nabla\\rho$,   fc = forcing $G$,   pe = APE release', fontsize=9)
     ax.set_ylabel('depth [m]')
     sec = ax.secondary_xaxis('top')                                      # coarse-grid spacing on top
     sec.set_xticks(centers); sec.set_xticklabels([f'{s:g}$^\\circ$' for s in SPACING], fontsize=10)
@@ -168,20 +190,69 @@ for j, (M, label, vmin, cmap) in enumerate([(R2, r'$R^2$', 0.0, 'Reds'), (CO, 'c
 fig.suptitle('Offline skill of the sub-grid buoyancy-flux network (held-out test split)', fontsize=13)
 fig.savefig('offline_skill.pdf', bbox_inches='tight', dpi=150)
 fig.savefig('offline_skill.png', bbox_inches='tight', dpi=150)
-print('rendered; depth-mean R2F_div:', {SPACING[i]: round(float(np.nanmean(R2['div'][i])), 3) for i in range(4)})"""
+for m in METRICS:
+    print(f'depth-mean R2F_{m}_away:', {SPACING[i]: round(float(np.nanmean(R2[m][i])), 3) for i in range(4)})"""
+
+R2MAP = """# (d) SECOND FIGURE -- where the skill lives. Per-point flux R^2 at one depth, one panel per
+# coarse grid, so the decline with coarsening can be read regionally rather than as a single number.
+# R2F_map is the stored 1 - <|f-F|^2>_t / <|F|^2>_t, reduced over the test snapshots at each point and
+# uncentered to match the training loss. It is well behaved: only 2-7% of wet points are negative
+# (they are weak-flux points where there is little to predict), so we clip the scale at 0 and print
+# the fraction below it for the caption.
+# Read the maps from skill-test rather than skill-test-forceape: the two are byte-identical at
+# factors 9/12/15, but the forceape factor-4 was run on an 8-snapshot time subsample (NTIME4) to fit
+# in memory, so its per-point R^2 is the noisier estimate. Everything else in this figure set uses
+# forceape, which is the only place the force/APE metrics live.
+MAPROOT = ROOT.replace('skill-test-forceape', 'skill-test')
+skm = {fa: xr.open_dataset(f'{MAPROOT}/factor-{fa}.nc') for fa in FACTORS}
+# Everything below the colour floor (0.2, not 0 -- see vmin below) is drawn blue, NOT grey: grey
+# reads as land on these maps. So blue means "R^2 < 0.2", which includes the small negative tail.
+reds = plt.get_cmap('Reds').copy(); reds.set_under('#2c7fb8'); reds.set_bad('white')
+fig2 = plt.figure(figsize=(12.5, 6.0), constrained_layout=True)
+gs2 = fig2.add_gridspec(2, 2)
+axs2 = []
+for i, fa in enumerate(FACTORS):
+    pmi = xr.open_dataset(f'{PARAM}/factor-{fa}/param.nc'); gi = create_grid(pmi)
+    zli = skm[fa]['zl'].values; ki = int(np.argmin(np.abs(zli - MAP_DEPTH)))
+    wl = pmi.wet.isel(zl=ki) if 'zl' in pmi.wet.dims else pmi.wet
+    w2 = np.asarray(xr.where(propagate_mask(wl, gi, niter=2) < 0.5, np.nan, 1.))
+    r2 = np.where(w2 > 0.5, skm[fa]['R2F_map'].isel(zl=ki).values, np.nan)
+    good = r2[np.isfinite(r2)]
+    print(f'D={SPACING[i]}deg z={zli[ki]:.0f}m  median R2 ={np.median(good):.2f}  '
+          f'frac<0.2 (blue) ={np.mean(good < 0.2):.3f}  frac<0 ={np.mean(good < 0):.3f}')
+    ax = fig2.add_subplot(gs2[i // 2, i % 2], projection=proj); axs2.append(ax)
+    im3 = ax.pcolormesh(loni, lati,
+                        regrid_ll(r2, pmi['geolon'].values, pmi['geolat'].values, SPACING[i]),
+                        cmap=reds, vmin=0.2, vmax=1., zorder=1,   # most of the ocean is >0.6; a
+                        # 0-1 scale wastes the range and flattens the regional structure
+                        transform=ccrs.PlateCarree(), rasterized=True)
+    land(ax); ax.set_global()
+    ax.set_title(r'$\\Delta=%.1f^\\circ$   (median $R^2$ = %.2f)' % (SPACING[i], np.nanmedian(r2)),
+                 fontsize=11)
+fig2.colorbar(im3, ax=axs2, orientation='vertical', shrink=0.7, pad=0.02, extend='min',
+              label=r'per-point $R^2$ of $\\mathbf{F}^\\rho_h$ at %.0f m' % zl[k])
+fig2.suptitle('Regional structure of the offline flux skill (held-out test split)', fontsize=13)
+fig2.savefig('offline_skill_maps.pdf', bbox_inches='tight', dpi=150)
+fig2.savefig('offline_skill_maps.png', bbox_inches='tight', dpi=150)
+print('rendered offline_skill_maps')"""
 
 CELLS = [
     ('md', "# Offline-skill figure (Section~3.3)\n\n"
            "Composite, in the style of Perezhogin et al. (2025) Fig. 1 but for the buoyancy "
            "problem, on the held-out test split:\n"
-           "- global Robinson maps of the **horizontal divergence** of the horizontal sub-grid "
-           "buoyancy flux $\\nabla_h\\cdot\\mathbf{F}^\\rho_h$ (diagnosed vs ANN) at 500 m;\n"
+           "- global Robinson maps of the **forcing the scheme applies**, "
+           "$G=-\\mathbf{u}^*\\cdot\\nabla\\rho$ (diagnosed vs ANN) at 500 m;\n"
            "- a **Gulf Stream** zoom of the along-/across-gradient flux (diagnosed vs ANN);\n"
-           "- **grouped heatmaps**: each coarse-grid spacing is a box of three sub-bins "
-           "(along | across | div skill) over depth, for $R^2$ and correlation.\n\n"
-           "Run top-to-bottom with the Pavel_Container kernel; copy `offline_skill.pdf` into "
-           "the paper repo `figures/`."),
-    ('code', SETUP), ('code', LOAD), ('code', DIV), ('code', PLOT),
+           "- **grouped heatmaps**: each coarse-grid spacing is a box of four sub-bins "
+           "(along | across | forcing | APE release) over depth, for $R^2$ and correlation.\n\n"
+           "Note we do *not* show $\\nabla_h\\cdot\\mathbf{F}^\\rho_h$: the Ferrari division by "
+           "$|\\nabla_3\\rho|$ precedes the derivative, so the horizontal flux divergence is not "
+           "what the model feels (flux-decomposition appendix).\n\n"
+           "A second figure, `offline_skill_maps.pdf`, then shows the **per-point** flux $R^2$ at "
+           "525 m for each coarse grid, so the decline with coarsening can be read regionally.\n\n"
+           "Run top-to-bottom with the Pavel_Container kernel; copy `offline_skill.pdf` and "
+           "`offline_skill_maps.pdf` into the paper repo `figures/`."),
+    ('code', SETUP), ('code', LOAD), ('code', FORCE), ('code', PLOT), ('code', R2MAP),
 ]
 
 
