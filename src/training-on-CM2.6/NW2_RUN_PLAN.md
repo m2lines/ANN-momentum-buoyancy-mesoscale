@@ -91,6 +91,46 @@ Drop `cg1, Rd1, Rd_dx, KE` (derivable or unused), the four `GM_sfn*` fields and 
 Note the truth products carry only `h,u,v`, so `e` for the truth must be rebuilt by cumulative sum
 of `h` — the same route the channel APE estimator already uses.
 
+## Run length — measured, not assumed (2026-07-29)
+
+`scripts/nw2_adjustment_timescale.py` uses the fact that all dec2025 R2 closures branch from one
+spun-up state, so response emergence is directly measurable:
+
+| what | timescale |
+|---|---|
+| each run's own KE and ACC settle to within 5% of final | **3–5 yr** |
+| ANN-vs-GM200 KE **separation** reaches 50% / 90% of final | **5.5 yr / ~14 yr** |
+| 3-D interface field stops drifting | **never within 80 yr**, in every closure |
+
+⇒ **use 15–20 yr legs (5500–7300 d), not 82 yr.** That captures the closure contrast at ~90%, leaves
+5–7 clean windows after discarding the adjustment, and cuts each R2 run from ~24 h to **4–6 h**.
+The honest cost: this is an energetics-and-response comparison, not a converged mean-state one —
+which matches the decision to set truth-matching aside. Deep mean state is not obtainable at any
+affordable length, and that is a property of NW2's spin-down, not of our closure.
+
+Use **500-day windows**, not 1000: at 1000 d the adjustment is only 2–5 samples.
+
+Gotcha: the **final `longmean` window of both dec2025 ANN runs is written all-NaN** (truncated
+write; the preceding 29 are fine). Any analysis of that tree must drop it.
+
+## Storage — the binding constraint
+
+Quota check 2026-07-29: **7.23 TB of 10 TB used (72%)**, and *the 5 TB extra allocation expires in
+141 days*, i.e. the base is 5 TB and we are already 2.2 TB above it. Storage, not CPU, is the limit.
+
+Per-record cost at R2 is 35.7 MB for the current 17-variable snapshot stream. Keeping only `u,v,h`
+is **6.1 MB/record = 17% of current**; the four `GM_sfn*`, four `meso_sfn_drd*`, `uhGM/vhGM`, `RV`,
+`uh/vh` and `e` together are the other 83%. `longmean` is cheap by comparison (0.19 GB/window vs
+0.91 GB/snapshot file).
+
+Budget with 20-yr legs + trimmed streams: roughly **10–15 GB per run, ~70–90 GB for all six** —
+against ~260 GB for the original 82-yr full-diagnostic plan. R4 phase 2 stays affordable at ~4×.
+
+Freeing space (candidates, decide before launching): `/scratch/db194/OM4/` is **1.5 TB** and OM4 was
+dropped from the paper scope; `/scratch/db194/mom6/dec2025/NeverWorld2/` is **823 GB** of σ0-network
+runs that the re-run set supersedes — but keep `R2-WENO/GM200,GM800,MEKE` until the new baselines
+exist, and keep enough of the ANN runs to reproduce the timescale analysis above.
+
 ## Open questions before launching
 
 1. Does `STENCIL_GRAD` behave in **layered** mode? Needs a short smoke test before committing
