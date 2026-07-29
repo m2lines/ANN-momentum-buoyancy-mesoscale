@@ -2,10 +2,12 @@
 (factors 4, 9, 12, 15 -> 0.4, 0.9, 1.2, 1.5 deg), for both the DIAGNOSED (true) sub-grid flux and
 the ANN PREDICTION. Shows where a fixed clamp sits relative to the physics as the filter widens.
 
-d rho/dz convention: the raw vertical gradient of the dataset's own `rho`, i.e. the SAME treatment
-used for the channel, so the two figures are comparable. Note the pipeline's N_buoyancy route gives
-a systematically SMALLER |d rho/dz| (and hence LARGER Upsilon) -- both are printed so the
-sensitivity is on the record; the raw route used here is the conservative one."""
+d rho/dz convention (settled 2026-07-28, diag_drhodz_discrepancy.py): use N_buoyancy, NOT the raw
+vertical gradient of the dataset's `rho`. `rho` here is pressure-dependent (in-situ) density -- it
+reaches ~1048 kg/m3 at 4.5 km -- so its raw d/dz is dominated by ADIABATIC COMPRESSION rather than
+stratification, overstating |d rho/dz| by ~10x and understating Upsilon by the same factor. The
+channel figures are unaffected: they use rhopot2 under a LINEAR equation of state, which has no
+compressibility, so a raw gradient there is legitimate."""
 import numpy as np, xarray as xr, torch, sys
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 sys.path.append('/home/db194/ANN-momentum-buoyancy-mesoscale/src/training-on-CM2.6')
@@ -27,7 +29,7 @@ def stencil(a, n=3):
 
 ann = import_ANN(MODEL).double().eval()
 res = {}
-print(f"{'scale':>7}{'source':>12}{'med':>10}{'p90':>10}{'p99':>11}{'>15':>8}   (|drdz| median)")
+print(f"{'scale':>7}{'source':>42}{'med':>10}{'p90':>10}{'p99':>11}{'>15':>8}   (|drdz| median)")
 for fac, lab, col in SCALES:
     d = xr.open_dataset(f"{ROOT}/factor-{fac}/test-0.nc")
     p = xr.open_dataset(f"{ROOT}/factor-{fac}/param.nc")
@@ -37,8 +39,8 @@ for fac, lab, col in SCALES:
     rhox, rhoy = g("rhox"), g("rhoy")
     drdz_raw = np.gradient(g("rho"), d["zl"].values, axis=0)
     drdz_N = -(RHO0_T / G_T) * g("N_buoyancy") ** 2
-    magx_raw = np.sqrt(rhox ** 2 + drdz_raw ** 2)
-    magx_N = np.sqrt(rhox ** 2 + drdz_N ** 2)
+    magx_N = np.sqrt(rhox ** 2 + drdz_N ** 2)          # correct: stratification only
+    magx_raw = np.sqrt(rhox ** 2 + drdz_raw ** 2)     # compression-contaminated, kept for the record
 
     # Level-by-level so the 45-column stencil array never exceeds ~100 MB (factor-4 whole-field
     # would be ~10 GB); STRIDE thins the accumulated samples, which a distribution does not need.
@@ -58,15 +60,15 @@ for fac, lab, col in SCALES:
         with torch.no_grad():
             o = ann(torch.from_numpy(x[ok])).numpy()
         pref = np.abs(o[:, 0]) * (rn * vn * np.broadcast_to(areaT[0], rn.shape) * CB)[ok]
-        accP.append(pref / magx_raw[k][ok]); accPN.append(pref / magx_N[k][ok])
-        accD.append((np.abs(Fx[k]) / magx_raw[k])[wk])
+        accP.append(pref / magx_N[k][ok]); accPN.append(pref / magx_raw[k][ok])
+        accD.append((np.abs(Fx[k]) / magx_N[k])[wk])
     fin = lambda L: (lambda a: a[np.isfinite(a) & (a > 0)])(np.concatenate(L)[::STRIDE])
     Ud, Up, UpN = fin(accD), fin(accP), fin(accPN)
     res[fac] = (lab, col, Ud, Up)
-    for nm, a, dz in [("diagnosed", Ud, drdz_raw), ("ANN", Up, drdz_raw),
-                      ("ANN (N_buoy drdz)", UpN, drdz_N)]:
+    for nm, a, dz in [("diagnosed", Ud, drdz_N), ("ANN", Up, drdz_N),
+                      ("ANN (raw drdz, compression-contaminated)", UpN, drdz_raw)]:
         q = np.percentile(a, [50, 90, 99])
-        print(f"{lab:>7}{nm:>12}{q[0]:>10.3f}{q[1]:>10.2f}{q[2]:>11.1f}{100*np.mean(a > CLAMP):>7.2f}%"
+        print(f"{lab:>7}{nm:>42}{q[0]:>10.3f}{q[1]:>10.2f}{q[2]:>11.1f}{100*np.mean(a > CLAMP):>7.2f}%"
               f"   {np.median(np.abs(dz[wet])):.2e}")
     d.close(); p.close()
 
