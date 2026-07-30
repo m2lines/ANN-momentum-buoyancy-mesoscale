@@ -25,7 +25,7 @@ RHO0 = 1035.0
 lm = sorted(glob.glob(f"{RUN}/output/longmean_*.nc")) or sorted(glob.glob(f"{RUN}/longmean_*.nc"))
 if not lm:
     sys.exit(f"no longmean output in {RUN} yet")
-d = xr.open_mfdataset(lm, combine="by_coords", decode_times=False)
+d = xr.concat([xr.open_dataset(f, decode_times=False) for f in lm], dim="time")
 t = "time" if "time" in d.dims else None
 g = lambda v: (d[v].mean(t) if t else d[v]).values
 
