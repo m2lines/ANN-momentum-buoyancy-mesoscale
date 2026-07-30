@@ -266,3 +266,79 @@ def set_letters(x=-0.2, y=1.05, fontsize=11, letters=['a', 'b', 'c', 'd', 'e', '
                     print('Cannot set letter', letters[j])
                 j += 1
         
+
+def regrid_tripolar(f, glon, glat, dx_deg, loni=None, lati=None):
+    '''
+    Regrid a curvilinear (tripolar) CM2.6 field to a regular lon/lat grid for cartopy, which
+    cannot draw the native grid (geolon is discontinuous near the Arctic and the NH blanks out).
+
+    f            2-D field on the model grid, NaN where masked
+    glon, glat   geolon/geolat for the same grid
+    dx_deg       nominal grid spacing in degrees, used for the off-domain backstop
+
+    An output cell is drawn only if its NEAREST SOURCE CELL is itself valid. Two traps this
+    avoids, both of which produced published-looking but fabricated maps:
+      * a plain nearest-neighbour gap fill paints interior holes -- shallow and marginal seas
+        that lie below the seafloor at the plotted level -- by extrapolating from whatever wet
+        point is closest, and unlike continents these are not hidden by the cartopy LAND feature;
+      * a pure DISTANCE threshold cannot fix that, because the masked coastal band is ~2*dx wide
+        and so widens with coarsening: any threshold that also scales with dx refills the band,
+        and the land imprint then stops growing with resolution.
+    The distance cap survives only to kill cells beyond the domain edge entirely.
+    '''
+    from scipy.interpolate import griddata
+    from scipy.spatial import cKDTree
+
+    if loni is None:
+        loni = np.arange(-179.5, 180., 1.0)
+    if lati is None:
+        lati = np.arange(-78.5, 89.5, 1.0)
+    LO, LA = np.meshgrid(loni, lati)
+    qxy = np.column_stack([LO.ravel() * np.cos(np.deg2rad(LA.ravel())), LA.ravel()])
+
+    lo = ((glon + 180) % 360) - 180
+    ok = np.isfinite(f)
+    pts = np.column_stack([lo[ok], glat[ok]]); val = f[ok]
+    # pad periodically in lon so the interpolation wraps cleanly across +/-180
+    pts = np.vstack([pts, pts + [360, 0], pts - [360, 0]]); val = np.concatenate([val, val, val])
+    lin = griddata(pts, val, (LO, LA), method='linear')
+    nn = griddata(pts, val, (LO, LA), method='nearest')
+    out = np.where(np.isfinite(lin), lin, nn)
+
+    ap = np.column_stack([lo.ravel(), glat.ravel()]); av = ok.ravel().astype(float)
+    fin = np.isfinite(ap[:, 0]) & np.isfinite(ap[:, 1]); ap, av = ap[fin], av[fin]
+    ap = np.vstack([ap, ap + [360, 0], ap - [360, 0]]); av = np.concatenate([av, av, av])
+    axy = np.column_stack([ap[:, 0] * np.cos(np.deg2rad(ap[:, 1])), ap[:, 1]])
+    dn, idx = cKDTree(axy).query(qxy)
+    keep = (av[idx] > 0.5) & (dn <= 1.5 * dx_deg)
+    return loni, lati, np.where(keep.reshape(LO.shape), out, np.nan)
+
+
+def native_lonlat(f, glon, glat):
+    '''
+    Prepare a curvilinear CM2.6 field for cartopy pcolormesh WITHOUT interpolating, the way the
+    upstream momentum-paper notebooks plot (notebooks/Figure-1, Figure-3). Preferred over
+    regrid_tripolar: each model cell is drawn as its own quad, so the plotted mask is exactly the
+    data's NaN mask and no value can be fabricated.
+
+    Two fixes are needed for CM2.6 specifically:
+      * geolon spans -279.7..+79.7, outside the [-180,180] that ccrs.PlateCarree expects, so the
+        Pacific is silently dropped. Normalise it. (This -- not the tripolar fold -- is why naive
+        native plotting appears to "not work" on this grid.)
+      * after normalising, ~330 cells straddle the +/-180 seam; pcolormesh would smear those across
+        the whole map, so blank them. They are a seam artifact, not data.
+
+    Returns (lon, lat, field) ready for ax.pcolormesh(..., transform=ccrs.PlateCarree()).
+    '''
+    lon = ((np.asarray(glon) + 180) % 360) - 180
+    lat = np.asarray(glat)
+    out = np.array(f, dtype='float64', copy=True)
+    bad = np.zeros(lon.shape, dtype=bool)
+    for arr, axis in ((np.abs(np.diff(lon, axis=1)), 1), (np.abs(np.diff(lon, axis=0)), 0)):
+        big = arr > 180.
+        if axis == 1:
+            bad[:, :-1] |= big; bad[:, 1:] |= big
+        else:
+            bad[:-1, :] |= big; bad[1:, :] |= big
+    out[bad] = np.nan
+    return lon, lat, out

@@ -834,8 +834,10 @@ class DatasetCM26():
             skill['corr_F_force_away'] = corr_away(G, G_p)
             skill['R2F_force_adv_away']   = 1 - M2(Gadv - Gadv_p, mask=wet2) / M2(Gadv, mask=wet2)  # advective form
             skill['corr_F_force_adv_away'] = corr_away(Gadv, Gadv_p)
-            skill['G']      = G.isel(time=0)               # snapshots for the paper figure: the
+            skill['G']      = G.isel(time=0)               # snapshots for the paper figures: the
             skill['G_pred'] = G_p.isel(time=0)             # forcing is what the model feels, not div_h F
+            skill['a']      = a.isel(time=0)               # APE-sink density, for the time-mean
+            skill['a_pred'] = a_p.isel(time=0)             # eddy-impact maps
 
         # Snapshots for plotting / scatter
         skill['Fx'] = Fx.isel(time=0)

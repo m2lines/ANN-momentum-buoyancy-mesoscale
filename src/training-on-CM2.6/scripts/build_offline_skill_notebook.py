@@ -86,16 +86,29 @@ LO, LA = np.meshgrid(loni, lati)
 QXY = np.column_stack([LO.ravel() * np.cos(np.deg2rad(LA.ravel())), LA.ravel()])
 
 def regrid_ll(f, glon, glat, dx_deg):
+    lo = ((glon + 180) % 360) - 180
     ok = np.isfinite(f)
-    pts = np.column_stack([((glon[ok] + 180) % 360) - 180, glat[ok]]); val = f[ok]
+    pts = np.column_stack([lo[ok], glat[ok]]); val = f[ok]
     # pad periodically in lon so the interpolation wraps cleanly across +/-180
     pts = np.vstack([pts, pts + [360, 0], pts - [360, 0]]); val = np.concatenate([val, val, val])
     lin = griddata(pts, val, (LO, LA), method='linear')
     nn = griddata(pts, val, (LO, LA), method='nearest')
     out = np.where(np.isfinite(lin), lin, nn)
-    pxy = np.column_stack([pts[:, 0] * np.cos(np.deg2rad(pts[:, 1])), pts[:, 1]])
-    dist, _ = cKDTree(pxy).query(QXY)
-    return np.where(dist.reshape(LO.shape) <= 1.5 * dx_deg, out, np.nan)
+    # Decide what may be DRAWN from the source mask geometry, not from a distance: an output cell
+    # is kept only if its nearest source cell is itself valid. A distance threshold cannot do this
+    # job -- the masked coastal band is ~2*Delta wide and so widens with coarsening, and any
+    # threshold that also scales with Delta refills it by interpolation. Measured with the old
+    # 1.5*Delta rule: blanked area stayed at 40-42% across Delta=0.4-1.5 while the true masked area
+    # grew 45->53%, i.e. at 1.5 deg a tenth of the map was painted over masked source and the
+    # land/exclusion imprint visibly failed to scale with resolution.
+    ap = np.column_stack([lo.ravel(), glat.ravel()]); av = ok.ravel().astype(float)
+    fin = np.isfinite(ap[:, 0]) & np.isfinite(ap[:, 1]); ap, av = ap[fin], av[fin]
+    ap = np.vstack([ap, ap + [360, 0], ap - [360, 0]]); av = np.concatenate([av, av, av])
+    axy = np.column_stack([ap[:, 0] * np.cos(np.deg2rad(ap[:, 1])), ap[:, 1]])
+    dn, idx = cKDTree(axy).query(QXY)
+    # the distance cap remains only as a backstop for cells beyond the domain edge entirely
+    keep = (av[idx] > 0.5) & (dn <= 1.5 * dx_deg)
+    return np.where(keep.reshape(LO.shape), out, np.nan)
 
 DX_MAP = SPACING[FACTORS.index(MAP_FA)]
 GT_r = regrid_ll(GT, lon, lat, DX_MAP)
