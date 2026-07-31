@@ -4,7 +4,7 @@ buoyancy closure by default, so bare is a true zero-closure reference). Last 5 w
 drop the adjustment measured in nw2_adjustment_timescale.py."""
 import numpy as np, xarray as xr, glob
 B = "/scratch/db194/mom6/jul2026_nw2"
-RUNS = ["bare", "GM400", "GM1600", "MEKE", "ANN_c1p0", "ANN_c2p0"]
+RUNS = ["bare", "GM400", "GM1600", "MEKE", "ANN_c1p0", "ANN_c1p5", "ANN_c2p0"]
 RHO0 = 1035.0
 
 def load(r, stream, n=5):
