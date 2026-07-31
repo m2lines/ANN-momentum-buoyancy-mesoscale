@@ -24,7 +24,8 @@ B = "/scratch/db194/mom6/jul2026_nw2"
 RHO0, G, NWIN = 1035.0, 9.8, 5
 # paired for comparison: matched-response pair first, then the stronger pair, then MEKE
 ORDER = [("GM400", "GM $\\kappa$=400"), ("ANN_c1p0", "ANN $C$=1"),
-         ("GM1600", "GM $\\kappa$=1600"), ("ANN_c2p0", "ANN $C$=2"), ("MEKE", "MEKE")]
+         ("GM1600", "GM $\\kappa$=1600"), ("ANN_c1p5", "ANN $C$=1.5"),
+         ("MEKE", "MEKE"), ("ANN_c2p0", "ANN $C$=2")]
 
 def last(run, stream, n=NWIN):
     return sorted(glob.glob(f"{B}/{run}/output/{stream}_*.nc"))[-n:]
@@ -82,7 +83,7 @@ for a in ("ANN_c1p0", "ANN_c2p0"):
 
 plt.rcParams.update({"font.size": 9, "axes.titlesize": 9.5, "axes.labelsize": 9,
                      "xtick.labelsize": 8, "ytick.labelsize": 8})
-fig, ax = plt.subplots(2, 5, figsize=(15.5, 6.4), sharex=True, sharey=True, constrained_layout=True)
+fig, ax = plt.subplots(2, 6, figsize=(18.0, 6.4), sharex=True, sharey=True, constrained_layout=True)
 va = np.nanpercentile(np.abs(np.stack([res[r][0] for r, _ in ORDER])), 99) / 1e6
 vk = np.nanpercentile(np.abs(np.stack([res[r][1] for r, _ in ORDER])), 99) / 1e3
 for j, (r, lab) in enumerate(ORDER):
