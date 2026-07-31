@@ -68,20 +68,31 @@ for r, lab in ORDER:
 
 plt.rcParams.update({"font.size": 9, "axes.titlesize": 9.5, "axes.labelsize": 9,
                      "xtick.labelsize": 8, "ytick.labelsize": 8})
-n = len(ORDER)
+n = len(ORDER) + 1                       # column 0 = the unparameterized reference state
 fig, ax = plt.subplots(3, n, figsize=(3.0*n, 9.2), sharex=True, sharey=True, constrained_layout=True)
+
+# --- column 0: control absolute fields (sequential scales -- these are magnitudes, not anomalies)
+for i, (fld, cm, lb, sc) in enumerate([(A0/1e6, "magma_r", "APE [MJ m$^{-2}$]", 1),
+                                       (M0*1e4, "viridis", "MKE [cm$^2$ s$^{-2}$]", 1),
+                                       (E0*1e4, "viridis", "EKE [cm$^2$ s$^{-2}$]", 1)]):
+    hi = np.nanpercentile(fld, 99)
+    p = ax[i, 0].pcolormesh(lon, lat, fld, cmap=cm, vmin=0, vmax=hi, shading="auto", rasterized=True)
+    plt.colorbar(p, ax=ax[i, 0], label=lb)
+ax[0, 0].set_title("no closure (reference)", loc="left")
+
 va = np.nanpercentile(np.abs(np.stack([res[r][0] for r,_ in ORDER])), 99) / 1e6
 vm = np.nanpercentile(np.abs(np.stack([res[r][1] for r,_ in ORDER])), 99) * 1e4
 ve = np.nanpercentile(np.abs(np.stack([res[r][2] for r,_ in ORDER])), 99) * 1e4
-for j, (r, lab) in enumerate(ORDER):
+for j, (r, lab) in enumerate(ORDER, start=1):
     da, dm, de = res[r]
     q0 = ax[0, j].pcolormesh(lon, lat, da/1e6, cmap="PuOr_r", vmin=-va, vmax=va, shading="auto", rasterized=True)
     q1 = ax[1, j].pcolormesh(lon, lat, dm*1e4, cmap="RdBu_r", vmin=-vm, vmax=vm, shading="auto", rasterized=True)
     q2 = ax[2, j].pcolormesh(lon, lat, de*1e4, cmap="RdBu_r", vmin=-ve, vmax=ve, shading="auto", rasterized=True)
-    ax[0, j].set_title(lab, loc="left"); ax[2, j].set_xlabel("longitude")
-fig.colorbar(q0, ax=ax[0, :], shrink=0.85, label="$\\Delta$APE [MJ m$^{-2}$]")
-fig.colorbar(q1, ax=ax[1, :], shrink=0.85, label="$\\Delta$MKE [cm$^2$ s$^{-2}$]")
-fig.colorbar(q2, ax=ax[2, :], shrink=0.85, label="$\\Delta$EKE [cm$^2$ s$^{-2}$]")
+    ax[0, j].set_title(lab, loc="left")
+for a in ax[2]: a.set_xlabel("longitude")
+fig.colorbar(q0, ax=ax[0, 1:], shrink=0.85, label="$\\Delta$APE [MJ m$^{-2}$]")
+fig.colorbar(q1, ax=ax[1, 1:], shrink=0.85, label="$\\Delta$MKE [cm$^2$ s$^{-2}$]")
+fig.colorbar(q2, ax=ax[2, 1:], shrink=0.85, label="$\\Delta$EKE [cm$^2$ s$^{-2}$]")
 for a, t in zip(ax[:, 0], ["available potential energy", "depth-avg MEAN KE", "depth-avg EDDY KE"]):
     a.set_ylabel(f"{t}\nlatitude")
 png = "/home/db194/ANN-momentum-buoyancy-mesoscale/src/training-on-CM2.6/scripts/nw2_ape_ke_maps.png"
