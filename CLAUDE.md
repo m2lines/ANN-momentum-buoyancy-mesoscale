@@ -43,6 +43,14 @@ python generate_3d_datasets.py --factor=4               # also 9, 12, 15
 
 There is no test suite, lint config, or build step — this is a research codebase. Validation happens by running training/analysis end-to-end and checking outputs.
 
+## Slurm
+
+**Always pass `#SBATCH --account=torch_pr_347_lzanna`.** The default account (`torch_pr_347_courant`) is heavily over-subscribed — it runs at ~4x its fair share, so its priority is ~6x worse and jobs sit pending for many hours. Measured 2026-08-01: an identical job waited 11 h on courant and started in 21 s on lzanna. The third association, `torch_pr_347_general`, is worse than either (fair-share is computed over the whole account tree, so your own zero usage there does not help). Check with `sshare -U -u $USER`.
+
+Partition is `cs`. Long MOM6 runs need an explicit `--time` (the 1/4-degree NW2 legs take ~29 h, so 48 h) and the run directory must contain `env_greene`, which `mom.sub` sources — the shared `build/intel/env` does not match the current binary and fails with `libnetcdf.so.18: cannot open shared object file`.
+
+**Slurm `COMPLETED` does not mean the model worked.** A batch script that runs to the end reports success even when every MPI rank died at startup. Check the run's own `exitcode` file and that output NetCDFs exist.
+
 ## Architecture: training pipeline
 
 The pipeline operates on coarse-grained CM2.6 ocean simulation data and trains a per-point ANN to predict subfilter fluxes given local state.
