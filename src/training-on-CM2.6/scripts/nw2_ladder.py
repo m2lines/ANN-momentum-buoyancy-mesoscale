@@ -66,4 +66,6 @@ for a, t, yl in [(ax[0], "(a) resolved eddy energy retained", "EKE  [% of no clo
     a.set_xlim(-0.25, 1.25)
 ax[0].legend(frameon=False, ncol=2)
 png = "/home/db194/ANN-momentum-buoyancy-mesoscale/src/training-on-CM2.6/scripts/nw2_ladder.png"
-fig.savefig(png, dpi=150); print("\nwrote", png)
+fig.savefig(png, dpi=150)
+fig.savefig("/home/db194/mesoscale_b_ml_parameterization/figures/nw2_ladder.pdf", dpi=300, bbox_inches="tight")
+print("wrote", png, "+ paper PDF")

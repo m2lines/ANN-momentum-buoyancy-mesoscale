@@ -87,4 +87,6 @@ for i, (lab, _) in enumerate(RUNGS):
 fig.colorbar(im, ax=ax, orientation="horizontal", extend="both", aspect=60, pad=0.02,
              shrink=0.75).set_label("$\\Delta$APE vs no closure  [MJ m$^{-2}$]", fontsize=10)
 png = "/home/db194/ANN-momentum-buoyancy-mesoscale/src/training-on-CM2.6/scripts/nw2_ape_response.png"
-fig.savefig(png, dpi=140, bbox_inches="tight"); print("\nwrote", png)
+fig.savefig(png, dpi=140, bbox_inches="tight")
+fig.savefig("/home/db194/mesoscale_b_ml_parameterization/figures/nw2_ape_response.pdf", dpi=300, bbox_inches="tight")
+print("wrote", png, "+ paper PDF")
