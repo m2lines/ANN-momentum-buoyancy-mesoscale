@@ -288,3 +288,34 @@ Using the M1 inventory, reduce the analysis sprawl to a canonical story.
 
   **The scale-awareness result from the ladder shows up in APE too, and more starkly.** Going ½°→¼°, both ANN responses **collapse toward zero** (C=1: −51.8→+9.7; C=1.5: −116.7→+3.9 kJ/m², with rms halving 183→100 and 299→176) while the diffusive closures **hold or strengthen** (GM400 +27.0→+29.7 with rms rising 310→354; GM1600 −85.9→−117.3). ⇒ at the eddy-permitting rung the ANN has almost stopped acting on the domain-mean APE while GM is doing as much as ever — the same "does less when the model resolves more" behaviour as the interface-displacement metric (18.4→9.1 m), now in an energy measure. **Caution before this is quoted:** an area-mean near zero (+9.7, +3.9) does NOT mean the closure is inactive — the rms is still 100–176 kJ/m², so the ANN is redistributing APE regionally while the domain integral cancels. Panels (g) and (i) show why: strong orange/purple structure in the channel band with opposing signs. That distinction (redistribution vs net removal) is worth making explicitly in §4.2 rather than letting the mean stand alone. **Still outstanding:** `nw2_ape_ke_maps.py`, `nw2_energy_panels.py`, `nw2_ape_eke_maps.py` retain the old APE in their APE rows (their MKE/EKE rows are unaffected); regenerate or retire before any of them is used.
 - **2026-08-07 (cont) — APE single-sourced so the uncorrected form cannot come back.** New `scripts/nw2_common.py` holds THE corrected APE (`e_rest=-H0`, topography-pinned part removed) + shared loaders; all five consumers (`nw2_ape_eke_maps`, `nw2_ape_ke_maps`, `nw2_energy_panels`, `nw2_vs_truth`, `nw2_ape_response`) now import it — the last two had their own (correct) inline copies replaced too, so exactly ONE implementation exists; `nw2_ape_check.py` alone keeps both forms on purpose (it IS the old-vs-new audit). The three stale figures regenerated with the corrected functional; the reference panel of `nw2_ape_ke_maps.png` now shows control APE ~0–14 MJ/m² concentrated in the channel band (was ~5–25 basin-wide — the pinned-column inflation). The dead `nw2_ape_ke_maps_R4.py` sed-stub deleted.
+
+## REMAINING WORK — consolidated review 2026-08-07 (plan vs everything done, all Claudes)
+
+**Milestone status:** M1 (inventory/audit) is effectively DONE — notebooks inventoried (INVENTORY.md), sims inventoried (log entries + SCRATCH_AUDIT.md), training↔online contract verified, density-reference issue found AND resolved by the neutral retrain, `predict_ANN_rho`/skill built, polar-fold bug fixed, hardcoded `/vast/pp2681` path fixed (env vars), reproducibility demonstrated by the 5-seed ensemble (0.90±0.006). M2 (notebook consolidation) was overtaken by events: analysis moved to `scripts/*.py`, which are versioned and re-runnable — recommend closing M2 as "superseded by scripts-based workflow". M3 (paper) is where all remaining work lives.
+
+### A. Paper prose (main.tex) — the critical path
+1. **§4.2 NeverWorld2 — THE gap.** All results exist (ladder 86-vs-56% headline, scale-aware ΔAPE collapse, energetics, circulation, vs-truth, thin-layer transient, MEKE-fix story) with figures + PLAN entries, but the subsection is still a one-line CC placeholder. Needs: prose (~5 paragraphs mirroring §4.1's structure), publication versions of `nw2_ladder` + `nw2_ape_response` (or energy-panels) into `figures/`, and the layered-mode limiter caveat (§4.1's "no limiters" must not over-reach; MIN_DIST_BOUNDARY=50 m is active in NW2).
+2. **Discussion & Conclusions** — only the transport-machinery future-work paragraph exists; the section body is `%Text here`. All ingredients are banked (two-regime thesis, scale-awareness, backscatter deficit → momentum-ANN coupling, no-tuning claim, OM4/CESM follow-up, bounded-conversion recommendation).
+3. **Introduction** — comment skeleton only.
+4. **Abstract + Plain Language Summary** — placeholders.
+5. **Double-Gyre appendix (App B)** — placeholder; needs a DECISION: is the Part-1 bridge required for submission, or cut? (One notebook exists: `DG_analysis/DG_compare_ANNC_20km.ipynb`; no neutral-model DG run exists.)
+6. Small in-text debts: bib keys `griffies2015impacts`, `kingma2015adam`; repoint the §3.4 forward-ref; confirm CM2.6 snapshot type (monthly mean vs instantaneous); optional along/across-R² sentence (Dhruv's call); ~29 CC notes to sweep/resolve before co-author review.
+
+### B. SI mechanics
+7. **Figures S1–S5 do not exist in the paper repo** (advertised in si.tex contents; SI will not compile). Generate from `DB_notebooks/evaluate_model_design/` notebooks or drop the entries.
+8. si.tex front matter: title/authors/affiliation placeholders.
+
+### C. Analysis follow-ups (small, non-blocking)
+9. **MEKE reversal at ¼° (29%→96% EKE) unexplained** — flagged "understand before presenting"; either explain or present with an explicit hedge.
+10. Truth comparison v2: the better coarsened product (`_truth/R32_coarsened_0p5.nc`, 10 records incl. `e/uh/vh/KE`) is built but unused; also no ¼° vs-truth yet (pre-made ¼° product exists in Pavel's tree).
+11. Optional: MIN_DIST_BOUNDARY sensitivity for the thin-layer transient at C≥1.5 (currently documented, not chased — fine to leave).
+
+### D. Decisions needed (Dhruv)
+12. **Author list** (open since project start).
+13. **Storage**: deadline relaxed (extra 5 TB now expires 2027-02-03) but 7.30/10 TB used and 2.3 TB over base. Candidates unchanged: `OM4/` 1.5 TB (dropped from scope), `dec2025/NeverWorld2` selective deletion (audit `nw2_dec2025_audit.py` is on record; keep R4/ANN_c1p0 + R2 GM/MEKE baselines).
+14. DG appendix in/out (item 5).
+15. Whether to share the NW2 resolution-divergence result with Pavel now (bears on the momentum+buoyancy coupling story).
+
+### E. Housekeeping
+16. **Uncommitted work in the analysis repo** (10 modified + ~25 untracked files from the offline/compute threads — SCRATCH_AUDIT.md, CHANNEL_OFFLINE_SI.md, batch_eval_*, diag_*, flux_collapse notebook...). Triage and land or discard; the repo should be clean before the Zenodo/Open-Research packaging.
+17. Update stale M1/M2 checkboxes (this entry is the source of truth); write the Open Research section (data/code availability: Zenodo for MOM6 patch + models, run configs).
