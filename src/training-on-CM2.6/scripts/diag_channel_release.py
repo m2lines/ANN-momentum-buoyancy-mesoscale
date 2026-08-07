@@ -23,6 +23,13 @@ masking the APE budget biased the ratio +0.12).
 Sign convention: code fluxes are -F^rho (training convention), so a_tap > 0 = APE release,
 identical to the CM2.6 deployed analysis (diag_fgnv_forcing.py).
 
+GM column (2026-08-07, Dhruv): a constant-kappa GM with kappa fitted by least squares on the
+DIAGNOSED FLUX over the full domain (volume-weighted, all snapshots) -- the same objective the
+ANN trains on, one parameter vs 10^5. kappa* = <F.grad_h rho>_V / <|grad_h rho|^2>_V (code sign:
+downgradient => F_code = +kappa grad rho => kappa* > 0). Everything downstream of the flux
+(Upsilon, FGNV, a) is LINEAR in the flux, so GM release is accumulated at kappa=1 in the same
+pass and scaled by kappa* at the end -- exact, no second pass.
+
 Env: NMAX=<n> limits snapshots (smoke test); default all.
 """
 import os, sys, glob
@@ -147,7 +154,9 @@ for fn, it in snaps:
     U = {'px': (one.Fx_pred.astype('float64') / (magx + 1e-300)).values,
          'py': (one.Fy_pred.astype('float64') / (magy + 1e-300)).values,
          'dx': (one.Fx.astype('float64') / (magx + 1e-300)).values,
-         'dy': (one.Fy.astype('float64') / (magy + 1e-300)).values}
+         'dy': (one.Fy.astype('float64') / (magy + 1e-300)).values,
+         'gx': (rhox / (magx + 1e-300)).values,      # GM at kappa=1: F_code = grad_h rho
+         'gy': (rhoy / (magy + 1e-300)).values}
     N2v = N2.values
 
     if ACC is None:
@@ -155,10 +164,10 @@ for fn, it in snaps:
         cwet = coarse.param.wet.values > 0.5                     # (zl, y, x)
         m2 = binary_erosion(cwet[0], iterations=2)               # surface mask, sponge/wall rim off
         area = (coarse.param.dxT * coarse.param.dyT).values
-        ACC = {k: np.zeros((ny, nx)) for k in ('ape_d', 'ape_p')}
+        ACC = {k: np.zeros((ny, nx)) for k in ('ape_d', 'ape_p', 'ape_g')}
         ACC.update({k: np.zeros((NZ, ny)) for k in
-                    ('sa_d', 'sa_p', 'su_d', 'su_p', 'sn')})
-        ACC.update(int_d=0., int_p=0.)
+                    ('sa_d', 'sa_p', 'sa_g', 'su_d', 'su_p', 'su_g', 'sn')})
+        ACC.update(int_d=0., int_p=0., int_g=0., fit_fg=0., fit_gg=0.)
         # cg1 + column metadata from the first snapshot (cg1 is a slow function of state)
         print(f'coarse {ny}x{nx}; cg1 for {int(m2.sum())}-ish columns...', flush=True)
         col_meta = {}
@@ -178,29 +187,41 @@ for fn, it in snaps:
         print(f'  {len(col_meta)} usable columns', flush=True)
 
     T = {k: np.full_like(U[k], np.nan) for k in U}
+    KEYS = ('px', 'py', 'dx', 'dy', 'gx', 'gy')
     for (j, i), (M, h) in col_meta.items():
         hz = 0.5 * (h[:-1] + h[1:])
         c2_h = GAMMA * cg1_map[j, i] ** 2 / h
-        cols = np.stack([U[k][:M, j, i] for k in ('px', 'py', 'dx', 'dy')], axis=1)
+        cols = np.stack([U[k][:M, j, i] for k in KEYS], axis=1)
         tapd = fgnv_solve(np.nan_to_num(cols), N2v[:M, j, i] * hz, c2_h, GAMMA)
-        for c, k in enumerate(('px', 'py', 'dx', 'dy')):
+        for c, k in enumerate(KEYS):
             T[k][:M, j, i] = tapd[:, c]
 
     rx, ry = rhox.values, rhoy.values
     a_d = T['dx'] * rx + T['dy'] * ry
     a_p = T['px'] * rx + T['py'] * ry
+    a_g = T['gx'] * rx + T['gy'] * ry            # unit-kappa GM release; scaled by kappa* at write
     mm = m2[None, :, :]
     apeint_d = np.nansum(np.where(mm, a_d, np.nan) * DZL[:, None, None], axis=0)
     apeint_p = np.nansum(np.where(mm, a_p, np.nan) * DZL[:, None, None], axis=0)
+    apeint_g = np.nansum(np.where(mm, a_g, np.nan) * DZL[:, None, None], axis=0)
     ACC['ape_d'] += np.nan_to_num(apeint_d)
     ACC['ape_p'] += np.nan_to_num(apeint_p)
+    ACC['ape_g'] += np.nan_to_num(apeint_g)
     ACC['int_d'] += np.nansum(apeint_d * np.where(m2, area, 0.))
     ACC['int_p'] += np.nansum(apeint_p * np.where(m2, area, 0.))
-    okz = np.isfinite(a_d) & np.isfinite(a_p) & mm
+    ACC['int_g'] += np.nansum(apeint_g * np.where(m2, area, 0.))
+    okz = np.isfinite(a_d) & np.isfinite(a_p) & np.isfinite(a_g) & mm
+    # kappa* fit sums: volume-weighted LS of the diagnosed code flux onto +grad_h rho
+    vol = np.where(okz, area[None, :, :] * DZL[:, None, None], 0.)
+    Fxv, Fyv = one.Fx.astype('float64').values, one.Fy.astype('float64').values
+    ACC['fit_fg'] += np.nansum(vol * (Fxv * rx + Fyv * ry))
+    ACC['fit_gg'] += np.nansum(vol * (rx ** 2 + ry ** 2))
     ACC['sa_d'] += np.where(okz, a_d, 0.).sum(axis=2)
     ACC['sa_p'] += np.where(okz, a_p, 0.).sum(axis=2)
+    ACC['sa_g'] += np.where(okz, a_g, 0.).sum(axis=2)
     ACC['su_d'] += np.where(okz, T['dy'], 0.).sum(axis=2)
     ACC['su_p'] += np.where(okz, T['py'], 0.).sum(axis=2)
+    ACC['su_g'] += np.where(okz, T['gy'], 0.).sum(axis=2)
     ACC['sn'] += okz.sum(axis=2)
     nt += 1
     print(f'  [{nt}/{len(snaps)}] {os.path.basename(fn)} it={it} '
@@ -209,21 +230,30 @@ for fn, it in snaps:
 # ----- write ------------------------------------------------------------------------------------
 ny, nx = ACC['ape_d'].shape
 cnt = np.maximum(ACC['sn'], 1)
+kap = ACC['fit_fg'] / ACC['fit_gg']
 out = xr.Dataset(
     dict(ape_diag=(('yh', 'xh'), ACC['ape_d'] / nt),
          ape_pred=(('yh', 'xh'), ACC['ape_p'] / nt),
+         ape_gm=(('yh', 'xh'), kap * ACC['ape_g'] / nt),
          sect_a_diag=(('zl', 'yh'), ACC['sa_d'] / cnt),
          sect_a_pred=(('zl', 'yh'), ACC['sa_p'] / cnt),
+         sect_a_gm=(('zl', 'yh'), kap * ACC['sa_g'] / cnt),
          sect_uy_diag=(('zl', 'yh'), ACC['su_d'] / cnt),
          sect_uy_pred=(('zl', 'yh'), ACC['su_p'] / cnt),
+         sect_uy_gm=(('zl', 'yh'), kap * ACC['su_g'] / cnt),
          mask2d=(('yh', 'xh'), m2.astype('i1'))),
     coords=dict(zl=zl))
 out.attrs.update(run=RUN, model=MODEL, factor=FACTOR, FGR=FGR, nt=nt,
                  gamma=GAMMA, c_min=C_MIN, rho0=RHO0,
+                 kappa_star=float(kap),
                  ratio_pred_over_diag=float(ACC['int_p'] / ACC['int_d']),
-                 note='a_tap>0 = APE release; sponge+wall rim eroded 2 cells; seamount unmasked')
+                 ratio_gm_over_diag=float(kap * ACC['int_g'] / ACC['int_d']),
+                 note='a_tap>0 = APE release; sponge+wall rim eroded 2 cells; seamount unmasked; '
+                      'GM = constant kappa_star, volume-weighted flux LS fit (same loss as ANN)')
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 out.to_netcdf(OUT)
 print(f'\n=== channel woc_p0625 factor-{FACTOR}, {nt} snapshots ===')
 print(f'  deployed APE release ratio pred/diag = {ACC["int_p"] / ACC["int_d"]:.3f}')
+print(f'  fitted kappa* = {kap:.1f} m2/s (online sweep bracket: 500-2000)')
+print(f'  deployed APE release ratio GM(kappa*)/diag = {kap * ACC["int_g"] / ACC["int_d"]:.3f}')
 print(f'  wrote {OUT}')
