@@ -50,9 +50,10 @@ d0 = xr.open_dataset(last("bare", "longmean")[-1], decode_times=False)
 rho_l, lat, lon = d0["zl"].values, d0["yh"].values, d0["xh"].values
 d0.close()
 drho = np.diff(rho_l)
+from nw2_common import load_e_rest, ape_map as _ape_corrected   # corrected APE (2026-08-07)
+e_rest = load_e_rest(B)
 e_bare = ape("bare")
-R = np.nanmean(e_bare[1:-1], axis=(1, 2))
-ape_map = lambda e: np.nansum(0.5 * G * drho[:, None, None] * (e[1:-1] - R[:, None, None])**2, axis=0)
+ape_map = lambda e: _ape_corrected(e, e_rest, drho)
 
 A0 = ape_map(e_bare); M0, E0 = energy("bare")
 res = {r: (ape_map(ape(r)) - A0, energy(r)[0] - M0, energy(r)[1] - E0) for r, _ in ORDER}

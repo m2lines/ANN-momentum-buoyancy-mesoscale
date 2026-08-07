@@ -54,12 +54,12 @@ d0.close()
 # interface i sits between layers i-1 and i; interior interfaces 1..nz-1
 drho = np.diff(rho_l)                          # (nz-1,)
 
+from nw2_common import load_e_rest, ape_map as _ape_corrected   # corrected APE (2026-08-07)
+e_rest = load_e_rest(B)
 e_bare = emean("bare")
-R = np.nanmean(e_bare[1:-1], axis=(1, 2))      # common reference: horizontal-mean bare interfaces
 
 def ape_map(e):
-    ei = e[1:-1]                               # interior interfaces
-    return np.nansum(0.5 * G * drho[:, None, None] * (ei - R[:, None, None]) ** 2, axis=0)
+    return _ape_corrected(e, e_rest, drho)
 
 A0, K0 = ape_map(e_bare), eke_map("bare")
 res = {}

@@ -36,10 +36,9 @@ drho = np.diff(rho_l)
 st = xr.open_dataset(f"{B}/bare/output/ocean.stats.nc", decode_times=False)
 e_rest = -st["H0"].values[-200:].mean(axis=0); st.close()
 
+from nw2_common import ape_map as _ape_corrected
 def ape(e):
-    ei, er, ebot = e[1:-1], e_rest[1:-1][:, None, None], e[-1][None]
-    hb = np.maximum(ebot - er, 0.0)
-    return np.nansum(0.5*G*drho[:, None, None]*((ei-er)**2 - hb**2), axis=0)
+    return _ape_corrected(e, e_rest, drho)
 
 def run_fields(r):
     e = np.mean([xr.open_dataset(f, decode_times=False)["e"].mean("time").values

@@ -39,10 +39,9 @@ def rung(base):
         return np.mean([xr.open_dataset(f, decode_times=False)["e"].mean("time").values
                         for f in last(base, r, "longmean")], axis=0)
 
+    from nw2_common import ape_map as _ape_corrected
     def ape(e):
-        ei, er, ebot = e[1:-1], e_rest[1:-1][:, None, None], e[-1][None]
-        hb = np.maximum(ebot - er, 0.0)                 # pinned by topography -> not available
-        return np.nansum(0.5*G*drho[:, None, None]*((ei-er)**2 - hb**2), axis=0)
+        return _ape_corrected(e, e_rest, drho)
 
     A0 = ape(emean("bare"))
     return lat, lon, A0, {r: ape(emean(r)) - A0 for r, _ in ORDER}
