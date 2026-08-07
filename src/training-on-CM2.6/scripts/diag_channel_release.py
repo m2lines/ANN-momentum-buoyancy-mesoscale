@@ -167,7 +167,10 @@ for fn, it in snaps:
         ACC = {k: np.zeros((ny, nx)) for k in ('ape_d', 'ape_p', 'ape_g')}
         ACC.update({k: np.zeros((NZ, ny)) for k in
                     ('sa_d', 'sa_p', 'sa_g', 'su_d', 'su_p', 'su_g', 'sn')})
-        ACC.update(int_d=0., int_p=0., int_g=0., fit_fg=0., fit_gg=0.)
+        ACC.update(int_d=0., int_p=0., int_g=0., fit_fg=0., fit_gg=0.,
+                   # pooled-instantaneous (3D, volume-weighted) moments: flux space + release space
+                   ff_dd=0., ff_pp=0., ff_dp=0.,
+                   m_w=0., m_d=0., m_p=0., m_g=0., m_dd=0., m_pp=0., m_gg=0., m_dp=0., m_dg=0.)
         # cg1 + column metadata from the first snapshot (cg1 is a slow function of state)
         print(f'coarse {ny}x{nx}; cg1 for {int(m2.sum())}-ish columns...', flush=True)
         col_meta = {}
@@ -216,6 +219,18 @@ for fn, it in snaps:
     Fxv, Fyv = one.Fx.astype('float64').values, one.Fy.astype('float64').values
     ACC['fit_fg'] += np.nansum(vol * (Fxv * rx + Fyv * ry))
     ACC['fit_gg'] += np.nansum(vol * (rx ** 2 + ry ** 2))
+    # instantaneous flux-space moments (ANN + GM vs diagnosed; GM corr uses fit_fg/fit_gg)
+    Fxp, Fyp = one.Fx_pred.astype('float64').values, one.Fy_pred.astype('float64').values
+    ACC['ff_dd'] += np.nansum(vol * (Fxv ** 2 + Fyv ** 2))
+    ACC['ff_pp'] += np.nansum(vol * (Fxp ** 2 + Fyp ** 2))
+    ACC['ff_dp'] += np.nansum(vol * (Fxv * Fxp + Fyv * Fyp))
+    # instantaneous release-space moments (a_g at unit kappa; kappa cancels in corr)
+    for tag, f in [('d', a_d), ('p', a_p), ('g', a_g)]:
+        ACC[f'm_{tag}'] += np.nansum(vol * f)
+        ACC[f'm_{tag}{tag}'] += np.nansum(vol * f ** 2)
+    ACC['m_dp'] += np.nansum(vol * a_d * a_p)
+    ACC['m_dg'] += np.nansum(vol * a_d * a_g)
+    ACC['m_w'] += vol.sum()
     ACC['sa_d'] += np.where(okz, a_d, 0.).sum(axis=2)
     ACC['sa_p'] += np.where(okz, a_p, 0.).sum(axis=2)
     ACC['sa_g'] += np.where(okz, a_g, 0.).sum(axis=2)
@@ -256,4 +271,22 @@ print(f'\n=== channel woc_p0625 factor-{FACTOR}, {nt} snapshots ===')
 print(f'  deployed APE release ratio pred/diag = {ACC["int_p"] / ACC["int_d"]:.3f}')
 print(f'  fitted kappa* = {kap:.1f} m2/s (online sweep bracket: 500-2000)')
 print(f'  deployed APE release ratio GM(kappa*)/diag = {kap * ACC["int_g"] / ACC["int_d"]:.3f}')
+
+# pooled-INSTANTANEOUS skill (3D samples, volume-weighted; the snapshot-level numbers)
+c_ann_F = ACC['ff_dp'] / np.sqrt(ACC['ff_dd'] * ACC['ff_pp'])
+c_gm_F = ACC['fit_fg'] / np.sqrt(ACC['ff_dd'] * ACC['fit_gg'])   # LS-optimal => R2 = corr^2
+r2_ann_F = 1.0 - (ACC['ff_dd'] - 2 * ACC['ff_dp'] + ACC['ff_pp']) / ACC['ff_dd']
+W = ACC['m_w']
+def _corr(mab, ma, mb, maa, mbb):
+    cov = mab / W - (ma / W) * (mb / W)
+    return cov / np.sqrt((maa / W - (ma / W) ** 2) * (mbb / W - (mb / W) ** 2))
+c_ann_a = _corr(ACC['m_dp'], ACC['m_d'], ACC['m_p'], ACC['m_dd'], ACC['m_pp'])
+c_gm_a = _corr(ACC['m_dg'], ACC['m_d'], ACC['m_g'], ACC['m_dd'], ACC['m_gg'])
+print(f'  instantaneous FLUX:    corr ANN {c_ann_F:.3f} (R2 {r2_ann_F:.3f})   '
+      f'GM {c_gm_F:.3f} (R2 {c_gm_F ** 2:.3f})')
+print(f'  instantaneous RELEASE: corr ANN {c_ann_a:.3f}   GM {c_gm_a:.3f}')
+out.attrs.update(corr_flux_ann=float(c_ann_F), corr_flux_gm=float(c_gm_F),
+                 r2_flux_ann=float(r2_ann_F),
+                 corr_release_ann=float(c_ann_a), corr_release_gm=float(c_gm_a))
+out.to_netcdf(OUT)   # rewrite with the instantaneous-skill attrs
 print(f'  wrote {OUT}')
