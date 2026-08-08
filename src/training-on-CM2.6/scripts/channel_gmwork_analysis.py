@@ -121,4 +121,6 @@ for a_, (ttl, f) in zip(ax, fields):
 ax[0].set_ylabel("lat")
 fig.colorbar(pc, ax=ax, shrink=0.85, label="applied APE extraction  [W m$^{-2}$]")
 png = "/home/db194/ANN-momentum-buoyancy-mesoscale/src/training-on-CM2.6/scripts/channel_applied_release.png"
-fig.savefig(png, dpi=150); print("\nwrote", png)
+fig.savefig(png, dpi=150)
+fig.savefig("/home/db194/mesoscale_b_ml_parameterization/figures/channel_applied_release.pdf", dpi=300, bbox_inches="tight")
+print("\nwrote", png, "+ paper PDF")
