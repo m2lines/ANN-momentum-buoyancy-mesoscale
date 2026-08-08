@@ -56,8 +56,12 @@ tb = xr.open_dataset(TB, decode_times=False)
 # Task B stores depth-integrated release maps directly: ape_diag (truth), ape_pred (offline ANN),
 # ape_gm (offline GM analogue), all (yh, xh) on the factor-4 coarse grid + a wet mask.
 msk = tb["mask2d"].values > 0.5
-a_diag = np.where(msk, tb["ape_diag"].values, np.nan)
-a_pred = np.where(msk, tb["ape_pred"].values, np.nan)
+# UNITS (caught by Dhruv 2026-08-07): Task B stores a = Ups.grad_rho.dz WITHOUT the g factor
+# (its own pred/diag ratios are unit-free so the file is internally consistent) => multiply by
+# g to get W/m2, like-for-like with GMwork. The first-pass "7.6x online/diag" was ~g in disguise.
+G_EARTH = 9.8
+a_diag = np.where(msk, G_EARTH * tb["ape_diag"].values, np.nan)
+a_pred = np.where(msk, G_EARTH * tb["ape_pred"].values, np.nan)
 w_ann = data["ANN p25"]["GMwork"].mean("Time").values
 ylat = data["ANN p25"]["yh"].values
 k2 = ylat < SPONGE_LAT
