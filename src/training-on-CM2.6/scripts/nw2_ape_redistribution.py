@@ -18,7 +18,7 @@ RUNGS = [("1/2$^\\circ$", "/scratch/db194/mom6/jul2026_nw2"),
          ("1/4$^\\circ$", "/scratch/db194/mom6/jul2026_nw2_R4")]
 ORDER = [("GM400", "GM $\\kappa$=400"), ("GM1600", "GM $\\kappa$=1600"), ("MEKE", "MEKE"),
          ("ANN_c1p0", "ANN $C$=1"), ("ANN_c1p5", "ANN $C$=1.5")]
-COL = {"GM400": "#6baed6", "GM1600": "#08306b", "MEKE": "#9ecae1",
+COL = {"GM400": "#6baed6", "GM1600": "#08306b", "MEKE": "#1b9e77",
        "ANN_c1p0": "#e6550d", "ANN_c1p5": "#a63603"}
 
 data = {}

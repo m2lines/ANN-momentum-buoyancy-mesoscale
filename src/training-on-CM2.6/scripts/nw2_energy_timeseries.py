@@ -12,7 +12,7 @@ import numpy as np, xarray as xr
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 
 B = "/scratch/db194/mom6/jul2026_nw2"
-RUNS = [("bare", "no closure", "#8c8c8c"), ("MEKE", "MEKE", "#9ecae1"),
+RUNS = [("bare", "no closure", "#8c8c8c"), ("MEKE", "MEKE", "#1b9e77"),
         ("GM400", "GM $\\kappa$=400", "#4292c6"), ("GM1600", "GM $\\kappa$=1600", "#08306b"),
         ("ANN_c1p0", "ANN $C$=1", "#fd8d3c"), ("ANN_c1p5", "ANN $C$=1.5", "#e6550d"),
         ("ANN_c2p0", "ANN $C$=2", "#a63603")]

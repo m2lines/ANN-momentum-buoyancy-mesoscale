@@ -49,7 +49,7 @@ for r in RUNS:
     print(f"{r:<10}{row}")
 
 mpl.rcParams.update({"font.size": 10, "axes.titlesize": 10.5, "legend.fontsize": 8.5})
-COL = {"GM400": "#6baed6", "GM1600": "#08306b", "MEKE": "#9ecae1",
+COL = {"GM400": "#6baed6", "GM1600": "#08306b", "MEKE": "#1b9e77",
        "ANN_c1p0": "#e6550d", "ANN_c1p5": "#a63603"}
 LAB = {"GM400": "GM $\\kappa$=400", "GM1600": "GM $\\kappa$=1600", "MEKE": "MEKE",
        "ANN_c1p0": "ANN $C$=1", "ANN_c1p5": "ANN $C$=1.5"}

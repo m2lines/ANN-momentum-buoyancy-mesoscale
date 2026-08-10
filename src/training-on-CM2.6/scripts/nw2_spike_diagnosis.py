@@ -44,7 +44,7 @@ for r in ("ANN_c1p0", "ANN_c1p5", "ANN_c2p0"):
 plt.rcParams.update({"font.size": 9, "axes.titlesize": 9.5, "axes.labelsize": 9,
                      "xtick.labelsize": 8.5, "ytick.labelsize": 8.5, "legend.fontsize": 8})
 fig, ax = plt.subplots(1, 3, figsize=(13.5, 3.4), constrained_layout=True)
-COL = {"bare": "#8c8c8c", "GM400": "#4292c6", "GM1600": "#08306b", "MEKE": "#9ecae1",
+COL = {"bare": "#8c8c8c", "GM400": "#4292c6", "GM1600": "#08306b", "MEKE": "#1b9e77",
        "ANN_c1p0": "#fd8d3c", "ANN_c1p5": "#e6550d", "ANN_c2p0": "#a63603"}
 for r in RUNS:
     s = d[r]
