@@ -20,7 +20,7 @@ import numpy as np, xarray as xr, glob, string
 import matplotlib as mpl; mpl.use("Agg")
 import matplotlib.pyplot as plt
 
-G, NWIN = 9.8, 5
+NWIN = 5
 RUNGS = [("1/2$^\\circ$", "/scratch/db194/mom6/jul2026_nw2"),
          ("1/4$^\\circ$", "/scratch/db194/mom6/jul2026_nw2_R4")]
 ORDER = [("GM400", "GM $\\kappa$=400"), ("ANN_c1p0", "ANN $C$=1"),

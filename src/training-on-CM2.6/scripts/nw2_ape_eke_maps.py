@@ -21,7 +21,7 @@ import numpy as np, xarray as xr, glob
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 
 B = "/scratch/db194/mom6/jul2026_nw2"
-RHO0, G, NWIN = 1035.0, 9.8, 5
+RHO0, NWIN = 1035.0, 5
 # paired for comparison: matched-response pair first, then the stronger pair, then MEKE
 ORDER = [("GM400", "GM $\\kappa$=400"), ("ANN_c1p0", "ANN $C$=1"),
          ("GM1600", "GM $\\kappa$=1600"), ("ANN_c1p5", "ANN $C$=1.5"),

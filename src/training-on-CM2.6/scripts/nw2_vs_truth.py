@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt, cmocean
 
 B = "/scratch/db194/mom6/jul2026_nw2"
 T = "/scratch/pp2681/mom6/Neverworld2/simulations/R32/0.5-degree-coarsen-snapshots.nc"
-G, NWIN, RHO0 = 9.8, 5, 1035.0
+NWIN, RHO0 = 5, 1035.0
 ORDER = [("GM400", "GM $\\kappa$=400"), ("ANN_c1p0", "ANN $C$=1"),
          ("GM1600", "GM $\\kappa$=1600"), ("ANN_c1p5", "ANN $C$=1.5"), ("MEKE", "MEKE")]
 

@@ -24,7 +24,7 @@ dAPE is a difference of one functional rather than of two differently-referenced
 import numpy as np, xarray as xr, glob
 
 B = "/scratch/db194/mom6/jul2026_nw2"
-G, NWIN = 9.8, 5
+G, NWIN = 10.0, 5   # G_EARTH=10.0 in NW2 (validated vs ocean.stats 2026-08-10)
 RUNS = ["bare", "GM400", "ANN_c1p0", "GM1600", "ANN_c1p5", "MEKE"]
 
 def last(run, s, n=NWIN): return sorted(glob.glob(f"{B}/{run}/output/{s}_*.nc"))[-n:]

@@ -17,7 +17,7 @@ import numpy as np, xarray as xr, glob
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 
 B = "/scratch/db194/mom6/jul2026_nw2"
-G, NWIN = 9.8, 5
+NWIN = 5
 ORDER = [("GM400", "GM $\\kappa$=400"), ("ANN_c1p0", "ANN $C$=1"),
          ("GM1600", "GM $\\kappa$=1600"), ("ANN_c1p5", "ANN $C$=1.5"), ("MEKE", "MEKE")]
 

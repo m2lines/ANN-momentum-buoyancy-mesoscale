@@ -14,7 +14,10 @@ dAPE area-means happen to survive (adiabatic closures conserve layer volume, and
 cancels in differences) but dAPE maps are ~30% low in rms without the correction."""
 import numpy as np, xarray as xr, glob
 
-G = 9.8
+# NW2 runs with G_EARTH = 10.0 (MOM_parameter_doc.all, both rungs), NOT the 9.8 default.
+# Validated 2026-08-10: with 10.0 the per-interface APE of a day-37200 snapshot matches
+# ocean.stats.nc APE exactly (with 9.8 every interface was uniformly 0.9800 of stats).
+G = 10.0
 
 def last(base, run, stream, n=5):
     """The final n files of a stream, run under `base` (the last windows of the leg)."""
