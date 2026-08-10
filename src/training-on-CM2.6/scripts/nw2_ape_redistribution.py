@@ -2,8 +2,10 @@
 
 nw2_ape_response.py found the AREA-MEAN dAPE collapsing toward zero from 1/2 to 1/4 degree while
 the map rms stays large. This figure makes that point directly:
-  top row     dAPE maps at 1/4 deg (corrected functional, last 5 windows), each annotated with its
+  row 1       dAPE maps at 1/4 deg (corrected functional, last 5 windows), each annotated with its
               area-mean and rms -- large-amplitude dipoles, small residual mean;
+  row 2       dEKE maps at 1/4 deg (depth-averaged resolved eddy KE, nw2_common.eke_map) -- the
+              complementary story: where each closure kills or spares the resolved eddies;
   bottom      (f) zonal-mean dAPE vs latitude, 1/4 deg solid vs 1/2 deg dashed, and (g) the
               south-to-north cumulative area integral of dAPE in Joules: a curve that wanders and
               returns to zero is pure rearrangement, an endpoint far from zero is net change. The
@@ -18,8 +20,8 @@ quadratic functional amplifies that displacement, and GM's eddy suppression keep
 outcrop front razor-sharp -- strong GM physically relocates the ACC outcrop front."""
 import numpy as np, xarray as xr, string
 import matplotlib as mpl; mpl.use("Agg")
-import matplotlib.pyplot as plt
-from nw2_common import emean, load_grid, load_e_rest, ape_map
+import matplotlib.pyplot as plt, cmocean
+from nw2_common import emean, load_grid, load_e_rest, ape_map, eke_map
 
 RUNGS = [("1/2$^\\circ$", "/scratch/db194/mom6/jul2026_nw2"),
          ("1/4$^\\circ$", "/scratch/db194/mom6/jul2026_nw2_R4")]
@@ -35,40 +37,64 @@ for lab, base in RUNGS:
     e_rest = load_e_rest(base)
     A0 = ape_map(emean(base, "bare"), e_rest, drho)
     data[lab] = (lat, lon, {r: ape_map(emean(base, r), e_rest, drho) - A0 for r, _ in ORDER})
-    print(f"--- {lab} loaded", flush=True)
+    print(f"--- {lab} APE loaded", flush=True)
+
+B4 = RUNGS[1][1]
+E0 = eke_map(B4, "bare")
+eres4 = {r: eke_map(B4, r) - E0 for r, _ in ORDER}
+print("--- 1/4 EKE loaded", flush=True)
 
 mpl.rcParams.update({"font.size": 10, "axes.titlesize": 10.5, "xtick.labelsize": 9,
                      "ytick.labelsize": 9, "legend.fontsize": 8.5})
 n = len(ORDER)
-fig = plt.figure(figsize=(2.45 * n, 8.6), constrained_layout=True)
-gs = fig.add_gridspec(2, n, height_ratios=[1.9, 1.0])
+fig = plt.figure(figsize=(2.45 * n, 13.2), constrained_layout=True)
+gs = fig.add_gridspec(3, n, height_ratios=[1.9, 1.9, 1.0])
 lat4, lon4, res4 = data["1/4$^\\circ$"]
 w4 = np.cos(np.deg2rad(lat4))[:, None]
-allv = np.abs(np.concatenate([res4[r].ravel() for r, _ in ORDER])) / 1e6
-allv = allv[np.isfinite(allv)]
-norm = mpl.colors.SymLogNorm(linthresh=np.percentile(allv, 60),
-                             vmin=-np.percentile(allv, 99.8), vmax=np.percentile(allv, 99.8), base=10)
-for j, (r, rlab) in enumerate(ORDER):
-    a = fig.add_subplot(gs[0, j])
-    im = a.pcolormesh(lon4, lat4, res4[r] / 1e6, norm=norm, cmap=plt.cm.PuOr_r,
-                      shading="auto", rasterized=True)
+
+def sym_norm(fields, scale):
+    v = np.abs(np.concatenate([f.ravel() for f in fields])) / scale
+    v = v[np.isfinite(v)]
+    return mpl.colors.SymLogNorm(linthresh=np.percentile(v, 60),
+                                 vmin=-np.percentile(v, 99.8), vmax=np.percentile(v, 99.8), base=10)
+
+def map_panel(a, f, norm, cmap, first_col, last_maprow):
+    im = a.pcolormesh(lon4, lat4, f, norm=norm, cmap=cmap, shading="auto", rasterized=True)
     a.set_aspect("equal")
-    mean = np.nansum(res4[r] * w4) / np.nansum(w4 * np.isfinite(res4[r]))
-    rms = np.sqrt(np.nansum(res4[r] ** 2 * w4) / np.nansum(w4 * np.isfinite(res4[r])))
-    a.set_title(f"{rlab}\nmean {mean/1e3:+.0f}, rms {rms/1e3:.0f} kJ m$^{{-2}}$",
-                loc="left", fontsize=9.5)
     lats = [-60, -40, -20, 0, 20, 40, 60]
     a.set_yticks(lats)
     a.set_yticklabels([f"${abs(v)}^\\circ$S" if v < 0 else (f"${v}^\\circ$N" if v > 0 else "$0^\\circ$")
-                       for v in lats] if j == 0 else [""] * 7)
-    a.set_xticks([10, 30, 50]); a.set_xticklabels([f"${x}^\\circ$E" for x in [10, 30, 50]])
+                       for v in lats] if first_col else [""] * 7)
+    a.set_xticks([10, 30, 50])
+    a.set_xticklabels([f"${x}^\\circ$E" for x in [10, 30, 50]] if last_maprow else [""] * 3)
+    return im
+
+def wstats(f):
+    m = np.nansum(f * w4) / np.nansum(w4 * np.isfinite(f))
+    return m, np.sqrt(np.nansum(f**2 * w4) / np.nansum(w4 * np.isfinite(f)))
+
+norm_a = sym_norm([res4[r] for r, _ in ORDER], 1e6)
+norm_e = sym_norm([eres4[r] * 1e4 for r, _ in ORDER], 1.0)
+axA, axE = [], []
+for j, (r, rlab) in enumerate(ORDER):
+    a = fig.add_subplot(gs[0, j]); axA.append(a)
+    imA = map_panel(a, res4[r] / 1e6, norm_a, plt.cm.PuOr_r, j == 0, False)
+    m, rms = wstats(res4[r])
+    a.set_title(f"{rlab}\nmean {m/1e3:+.0f}, rms {rms/1e3:.0f} kJ m$^{{-2}}$", loc="left", fontsize=9.5)
     a.text(0.04, 0.975, f"({string.ascii_lowercase[j]})", transform=a.transAxes, va="top",
            fontsize=10, fontweight="bold")
-    if j == 0:
-        a.set_ylabel("1/4$^\\circ$ latitude")
-fig.colorbar(im, ax=[fig.axes[j] for j in range(n)], orientation="horizontal", extend="both",
-             aspect=60, pad=0.02, shrink=0.75).set_label(
-    "$\\Delta$APE vs no closure at 1/4$^\\circ$  [MJ m$^{-2}$]", fontsize=10)
+    a = fig.add_subplot(gs[1, j]); axE.append(a)
+    imE = map_panel(a, eres4[r] * 1e4, norm_e, cmocean.cm.curl, j == 0, True)
+    m, rms = wstats(eres4[r] * 1e4)
+    a.set_title(f"mean {m:+.0f}, rms {rms:.0f} cm$^2$ s$^{{-2}}$", loc="left", fontsize=9.5)
+    a.text(0.04, 0.975, f"({string.ascii_lowercase[n+j]})", transform=a.transAxes, va="top",
+           fontsize=10, fontweight="bold")
+axA[0].set_ylabel("1/4$^\\circ$ latitude")
+axE[0].set_ylabel("1/4$^\\circ$ latitude")
+fig.colorbar(imA, ax=axA, orientation="horizontal", extend="both", aspect=60, pad=0.02,
+             shrink=0.75).set_label("$\\Delta$APE vs no closure at 1/4$^\\circ$  [MJ m$^{-2}$]", fontsize=10)
+fig.colorbar(imE, ax=axE, orientation="horizontal", extend="both", aspect=60, pad=0.02,
+             shrink=0.75).set_label("$\\Delta$ depth-avg eddy KE vs no closure at 1/4$^\\circ$  [cm$^2$ s$^{-2}$]", fontsize=10)
 
 RE = 6.371e6
 def cumint(lat, lon, f):
@@ -77,7 +103,7 @@ def cumint(lat, lon, f):
     dA = RE**2 * np.cos(np.deg2rad(lat))[:, None] * dphi * dlam * np.isfinite(f)
     return np.cumsum(np.nansum(f * dA, axis=1))
 
-gsb = gs[1, :].subgridspec(1, 2)
+gsb = gs[2, :].subgridspec(1, 2)
 az = fig.add_subplot(gsb[0]); ac = fig.add_subplot(gsb[1])
 from matplotlib.lines import Line2D
 for r, rlab in ORDER:
@@ -93,7 +119,7 @@ for a, yl, ttl in [(az, "zonal-mean $\\Delta$APE  [kJ m$^{-2}$]", "zonal mean"),
     a.spines[["top", "right"]].set_visible(False)
     a.set_title(f"{ttl}: 1/2$^\\circ$ dashed, 1/4$^\\circ$ solid", loc="left")
 for k, a in enumerate([az, ac]):
-    a.text(0.01, 0.97, f"({string.ascii_lowercase[n+k]})", transform=a.transAxes, va="top",
+    a.text(0.01, 0.97, f"({string.ascii_lowercase[2*n+k]})", transform=a.transAxes, va="top",
            fontsize=10, fontweight="bold")
 handles = [Line2D([], [], color="k", ls="--", lw=1.5), Line2D([], [], color="k", ls="-", lw=1.5)] + \
           [Line2D([], [], color=COL[r], lw=2.2) for r, _ in ORDER]
