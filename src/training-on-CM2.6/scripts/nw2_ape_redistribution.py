@@ -8,9 +8,13 @@ the map rms stays large. This figure makes that point directly:
               complementary story: where each closure kills or spares the resolved eddies.
 Both map rows use the FIXED colour scales of Perezhogin's Figure-2-and-S1.ipynb (NW2 energy
 panels): dAPE PuOr_r SymLog(linthresh 1e5, +-1e7 J/m2); dEKE curl SymLog(linthresh 1e4,
-+-1e6 J/m2) -- directly comparable with the published momentum-paper maps. Note his dEKE is
-(reference - control), i.e. what the MISSING eddies carry; ours is (closure - control), so our
-EKE row sitting mostly inside the linear zone is itself the message;
++-1e6 J/m2) -- directly comparable with the published momentum-paper maps.
+
+TARGET column (added 2026-08-10): Pavel sent his Figure-2 reference bundle regridded to 1/4 deg
+(_truth/energy_{ref,control}.nc on the R4 scratch tree; use rho0*(ref.X - control.X), rho0=1035).
+ref = coarsened 1/32 deg truth, control = his unparameterized 1/4 deg run. His control agrees with
+our bare run (APE pattern r=0.9996, amplitude within ~4%; EKE r=0.96, ~15% -- sampling/definition
+differences), so the target (vs HIS control) is comparable with our responses (vs OUR bare);
   bottom      (f) zonal-mean dAPE vs latitude, 1/4 deg solid vs 1/2 deg dashed, and (g) the
               south-to-north cumulative area integral of dAPE in Joules: a curve that wanders and
               returns to zero is pure rearrangement, an endpoint far from zero is net change. The
@@ -50,9 +54,15 @@ E0 = eke_map(B4, "bare", integrated=True)
 eres4 = {r: RHO0 * (eke_map(B4, r, integrated=True) - E0) for r, _ in ORDER}
 print("--- 1/4 EKE loaded", flush=True)
 
+ctl = xr.open_dataset(f"{B4}/_truth/energy_control.nc", decode_times=False)
+ref = xr.open_dataset(f"{B4}/_truth/energy_ref.nc", decode_times=False)
+tgt_a = RHO0 * (ref["APE"].values - ctl["APE"].values)
+tgt_e = RHO0 * (ref["EKE"].values - ctl["EKE"].values)
+ctl.close(); ref.close()
+
 mpl.rcParams.update({"font.size": 10, "axes.titlesize": 10.5, "xtick.labelsize": 9,
                      "ytick.labelsize": 9, "legend.fontsize": 8.5})
-n = len(ORDER)
+n = len(ORDER) + 1                                      # TARGET column + closures
 fig = plt.figure(figsize=(2.45 * n, 13.2), constrained_layout=True)
 gs = fig.add_gridspec(3, n, height_ratios=[1.9, 1.9, 1.0])
 lat4, lon4, res4 = data["1/4$^\\circ$"]
@@ -76,17 +86,19 @@ def wstats(f):
 # Perezhogin Figure-2-and-S1.ipynb scales, verbatim
 norm_a = mpl.colors.SymLogNorm(linthresh=1e5, vmin=-1e7, vmax=1e7, base=10)
 norm_e = mpl.colors.SymLogNorm(linthresh=1e4, vmin=-1e6, vmax=1e6, base=10)
+cols = [("TARGET: $\\overline{1/32^\\circ}$ $-$ control", tgt_a, tgt_e)] + \
+       [(rlab, res4[r], eres4[r]) for r, rlab in ORDER]
 axA, axE = [], []
-for j, (r, rlab) in enumerate(ORDER):
+for j, (rlab, fa, fe) in enumerate(cols):
     a = fig.add_subplot(gs[0, j]); axA.append(a)
-    imA = map_panel(a, res4[r], norm_a, plt.cm.PuOr_r, j == 0, False)
-    m, rms = wstats(res4[r])
+    imA = map_panel(a, fa, norm_a, plt.cm.PuOr_r, j == 0, False)
+    m, rms = wstats(fa)
     a.set_title(f"{rlab}\nmean {m/1e3:+.0f}, rms {rms/1e3:.0f} kJ m$^{{-2}}$", loc="left", fontsize=9.5)
     a.text(0.04, 0.975, f"({string.ascii_lowercase[j]})", transform=a.transAxes, va="top",
            fontsize=10, fontweight="bold")
     a = fig.add_subplot(gs[1, j]); axE.append(a)
-    imE = map_panel(a, eres4[r], norm_e, cmocean.cm.curl, j == 0, True)
-    m, rms = wstats(eres4[r])
+    imE = map_panel(a, fe, norm_e, cmocean.cm.curl, j == 0, True)
+    m, rms = wstats(fe)
     a.set_title(f"mean {m/1e3:+.1f}, rms {rms/1e3:.1f} kJ m$^{{-2}}$", loc="left", fontsize=9.5)
     a.text(0.04, 0.975, f"({string.ascii_lowercase[n+j]})", transform=a.transAxes, va="top",
            fontsize=10, fontweight="bold")
@@ -107,6 +119,8 @@ def cumint(lat, lon, f):
 gsb = gs[2, :].subgridspec(1, 2)
 az = fig.add_subplot(gsb[0]); ac = fig.add_subplot(gsb[1])
 from matplotlib.lines import Line2D
+az.plot(lat4, np.nanmean(tgt_a, axis=1) / 1e3, "-", color="k", lw=2.0)
+ac.plot(lat4, cumint(lat4, lon4, tgt_a) / 1e18, "-", color="k", lw=2.0)
 for r, rlab in ORDER:
     for (lab, _), ls in zip(RUNGS, ["--", "-"]):
         lat, lon, res = data[lab]
@@ -122,9 +136,10 @@ for a, yl, ttl in [(az, "zonal-mean $\\Delta$APE  [kJ m$^{-2}$]", "zonal mean"),
 for k, a in enumerate([az, ac]):
     a.text(0.01, 0.97, f"({string.ascii_lowercase[2*n+k]})", transform=a.transAxes, va="top",
            fontsize=10, fontweight="bold")
-handles = [Line2D([], [], color="k", ls="--", lw=1.5), Line2D([], [], color="k", ls="-", lw=1.5)] + \
+handles = [Line2D([], [], color="k", ls="-", lw=2.0),
+           Line2D([], [], color="0.45", ls="--", lw=1.5), Line2D([], [], color="0.45", ls="-", lw=1.5)] + \
           [Line2D([], [], color=COL[r], lw=2.2) for r, _ in ORDER]
-labels = ["1/2$^\\circ$", "1/4$^\\circ$"] + [rlab for _, rlab in ORDER]
+labels = ["target (1/4$^\\circ$)", "1/2$^\\circ$", "1/4$^\\circ$"] + [rlab for _, rlab in ORDER]
 az.legend(handles, labels, frameon=False, ncol=4, fontsize=8.5, loc="lower right")
 
 png = "/home/db194/ANN-momentum-buoyancy-mesoscale/src/training-on-CM2.6/scripts/nw2_ape_redistribution.png"
@@ -141,3 +156,12 @@ for r, _ in ORDER:
         rms = np.sqrt(np.nansum(res[r] ** 2 * w) / np.nansum(w * np.isfinite(res[r])))
         row += f"{m/1e3:>13.1f}{rms/1e3:>12.1f}"
     print(f"{r:<10}{row}")
+
+def fit(x, y):
+    m = np.isfinite(x) & np.isfinite(y)
+    return np.polyfit(x[m], y[m], 1)[0], np.corrcoef(x[m], y[m])[0, 1]
+print(f"\n1/4-deg maps vs Pavel's target:  {'dAPE slope':>11}{'r':>7}{'dEKE slope':>12}{'r':>7}")
+for r, rlab in ORDER:
+    sa, ra = fit(tgt_a.ravel(), res4[r].ravel())
+    se, re_ = fit(tgt_e.ravel(), eres4[r].ravel())
+    print(f"  {r:<12} {sa:>24.2f}{ra:>7.2f}{se:>12.2f}{re_:>7.2f}")
