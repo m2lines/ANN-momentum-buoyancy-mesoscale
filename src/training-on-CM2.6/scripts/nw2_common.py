@@ -42,11 +42,13 @@ def load_e_rest(base, run="bare", nrec=200):
     s.close()
     return e_rest
 
-def eke_map(base, run, n=5):
-    """Depth-averaged resolved eddy KE map [m2/s2] from the last n snapshot files.
+def eke_map(base, run, n=5, integrated=False):
+    """Resolved eddy KE map from the last n snapshot files.
 
     Thickness-weighted, eddy = deviation from each file's own time mean (the convention of
-    nw2_ladder.py / nw2_vs_truth.py), then averaged across files."""
+    nw2_ladder.py / nw2_vs_truth.py), then averaged across files. Default is depth-AVERAGED
+    [m2/s2]; integrated=True returns the depth integral [m3/s2] (multiply by rho0 for J/m2,
+    Perezhogin's Figure-2 convention)."""
     out = []
     for f in last(base, run, "snapshots", n):
         d = xr.open_dataset(f, decode_times=False)
@@ -56,7 +58,8 @@ def eke_map(base, run, n=5):
         vc = 0.5 * (v[:, :, :-1, :] + v[:, :, 1:, :])
         KE = 0.5 * np.nanmean((uc**2 + vc**2) * h, 0)
         um, vm, hm = np.nanmean(uc, 0), np.nanmean(vc, 0), np.nanmean(h, 0)
-        out.append(np.nansum(KE - 0.5 * (um**2 + vm**2) * hm, 0) / np.nansum(hm, 0))
+        col = np.nansum(KE - 0.5 * (um**2 + vm**2) * hm, 0)
+        out.append(col if integrated else col / np.nansum(hm, 0))
     return np.mean(out, 0)
 
 def ape_map(e, e_rest, drho):

@@ -4,8 +4,13 @@ nw2_ape_response.py found the AREA-MEAN dAPE collapsing toward zero from 1/2 to 
 the map rms stays large. This figure makes that point directly:
   row 1       dAPE maps at 1/4 deg (corrected functional, last 5 windows), each annotated with its
               area-mean and rms -- large-amplitude dipoles, small residual mean;
-  row 2       dEKE maps at 1/4 deg (depth-averaged resolved eddy KE, nw2_common.eke_map) -- the
-              complementary story: where each closure kills or spares the resolved eddies;
+  row 2       dEKE maps at 1/4 deg (rho0-weighted depth-INTEGRATED resolved eddy KE) -- the
+              complementary story: where each closure kills or spares the resolved eddies.
+Both map rows use the FIXED colour scales of Perezhogin's Figure-2-and-S1.ipynb (NW2 energy
+panels): dAPE PuOr_r SymLog(linthresh 1e5, +-1e7 J/m2); dEKE curl SymLog(linthresh 1e4,
++-1e6 J/m2) -- directly comparable with the published momentum-paper maps. Note his dEKE is
+(reference - control), i.e. what the MISSING eddies carry; ours is (closure - control), so our
+EKE row sitting mostly inside the linear zone is itself the message;
   bottom      (f) zonal-mean dAPE vs latitude, 1/4 deg solid vs 1/2 deg dashed, and (g) the
               south-to-north cumulative area integral of dAPE in Joules: a curve that wanders and
               returns to zero is pure rearrangement, an endpoint far from zero is net change. The
@@ -39,9 +44,10 @@ for lab, base in RUNGS:
     data[lab] = (lat, lon, {r: ape_map(emean(base, r), e_rest, drho) - A0 for r, _ in ORDER})
     print(f"--- {lab} APE loaded", flush=True)
 
+RHO0 = 1035.0
 B4 = RUNGS[1][1]
-E0 = eke_map(B4, "bare")
-eres4 = {r: eke_map(B4, r) - E0 for r, _ in ORDER}
+E0 = eke_map(B4, "bare", integrated=True)
+eres4 = {r: RHO0 * (eke_map(B4, r, integrated=True) - E0) for r, _ in ORDER}
 print("--- 1/4 EKE loaded", flush=True)
 
 mpl.rcParams.update({"font.size": 10, "axes.titlesize": 10.5, "xtick.labelsize": 9,
@@ -51,12 +57,6 @@ fig = plt.figure(figsize=(2.45 * n, 13.2), constrained_layout=True)
 gs = fig.add_gridspec(3, n, height_ratios=[1.9, 1.9, 1.0])
 lat4, lon4, res4 = data["1/4$^\\circ$"]
 w4 = np.cos(np.deg2rad(lat4))[:, None]
-
-def sym_norm(fields, scale):
-    v = np.abs(np.concatenate([f.ravel() for f in fields])) / scale
-    v = v[np.isfinite(v)]
-    return mpl.colors.SymLogNorm(linthresh=np.percentile(v, 60),
-                                 vmin=-np.percentile(v, 99.8), vmax=np.percentile(v, 99.8), base=10)
 
 def map_panel(a, f, norm, cmap, first_col, last_maprow):
     im = a.pcolormesh(lon4, lat4, f, norm=norm, cmap=cmap, shading="auto", rasterized=True)
@@ -73,28 +73,29 @@ def wstats(f):
     m = np.nansum(f * w4) / np.nansum(w4 * np.isfinite(f))
     return m, np.sqrt(np.nansum(f**2 * w4) / np.nansum(w4 * np.isfinite(f)))
 
-norm_a = sym_norm([res4[r] for r, _ in ORDER], 1e6)
-norm_e = sym_norm([eres4[r] * 1e4 for r, _ in ORDER], 1.0)
+# Perezhogin Figure-2-and-S1.ipynb scales, verbatim
+norm_a = mpl.colors.SymLogNorm(linthresh=1e5, vmin=-1e7, vmax=1e7, base=10)
+norm_e = mpl.colors.SymLogNorm(linthresh=1e4, vmin=-1e6, vmax=1e6, base=10)
 axA, axE = [], []
 for j, (r, rlab) in enumerate(ORDER):
     a = fig.add_subplot(gs[0, j]); axA.append(a)
-    imA = map_panel(a, res4[r] / 1e6, norm_a, plt.cm.PuOr_r, j == 0, False)
+    imA = map_panel(a, res4[r], norm_a, plt.cm.PuOr_r, j == 0, False)
     m, rms = wstats(res4[r])
     a.set_title(f"{rlab}\nmean {m/1e3:+.0f}, rms {rms/1e3:.0f} kJ m$^{{-2}}$", loc="left", fontsize=9.5)
     a.text(0.04, 0.975, f"({string.ascii_lowercase[j]})", transform=a.transAxes, va="top",
            fontsize=10, fontweight="bold")
     a = fig.add_subplot(gs[1, j]); axE.append(a)
-    imE = map_panel(a, eres4[r] * 1e4, norm_e, cmocean.cm.curl, j == 0, True)
-    m, rms = wstats(eres4[r] * 1e4)
-    a.set_title(f"mean {m:+.0f}, rms {rms:.0f} cm$^2$ s$^{{-2}}$", loc="left", fontsize=9.5)
+    imE = map_panel(a, eres4[r], norm_e, cmocean.cm.curl, j == 0, True)
+    m, rms = wstats(eres4[r])
+    a.set_title(f"mean {m/1e3:+.1f}, rms {rms/1e3:.1f} kJ m$^{{-2}}$", loc="left", fontsize=9.5)
     a.text(0.04, 0.975, f"({string.ascii_lowercase[n+j]})", transform=a.transAxes, va="top",
            fontsize=10, fontweight="bold")
 axA[0].set_ylabel("1/4$^\\circ$ latitude")
 axE[0].set_ylabel("1/4$^\\circ$ latitude")
 fig.colorbar(imA, ax=axA, orientation="horizontal", extend="both", aspect=60, pad=0.02,
-             shrink=0.75).set_label("$\\Delta$APE vs no closure at 1/4$^\\circ$  [MJ m$^{-2}$]", fontsize=10)
+             shrink=0.75).set_label("$\\Delta$APE vs no closure at 1/4$^\\circ$  [J m$^{-2}$]", fontsize=10)
 fig.colorbar(imE, ax=axE, orientation="horizontal", extend="both", aspect=60, pad=0.02,
-             shrink=0.75).set_label("$\\Delta$ depth-avg eddy KE vs no closure at 1/4$^\\circ$  [cm$^2$ s$^{-2}$]", fontsize=10)
+             shrink=0.75).set_label("$\\rho_0\\,\\Delta$ depth-int eddy KE vs no closure at 1/4$^\\circ$  [J m$^{-2}$]", fontsize=10)
 
 RE = 6.371e6
 def cumint(lat, lon, f):
