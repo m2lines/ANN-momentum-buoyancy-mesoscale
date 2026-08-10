@@ -8,7 +8,14 @@ the map rms stays large. This figure makes that point directly:
               south-to-north cumulative area integral of dAPE in Joules: a curve that wanders and
               returns to zero is pure rearrangement, an endpoint far from zero is net change. The
               endpoints cross-check against the ocean.stats time series (nw2_timeseries.py):
-              ANN C=1 at 1/4 deg ends at ~+0.8e18 J, matching stats' dAPE(run)-dAPE(bare)."""
+              ANN C=1 at 1/4 deg ends at ~+0.8e18 J, matching stats' dAPE(run)-dAPE(bare).
+
+The sharp zonal jumps in the GM maps near 54.5S (and the on/off edge at the ~69S shelf break) are
+REAL, not artifacts (checked 2026-08-10): the pinning term cancels exactly in run differences, and
+the jump rows coincide with where GM has outcropped 1-2 more interfaces than the no-closure run
+(interface 8, reference depth ~1050 m, sits AT the surface in GM1600 and at depth in bare). The
+quadratic functional amplifies that displacement, and GM's eddy suppression keeps its time-mean
+outcrop front razor-sharp -- strong GM physically relocates the ACC outcrop front."""
 import numpy as np, xarray as xr, string
 import matplotlib as mpl; mpl.use("Agg")
 import matplotlib.pyplot as plt
